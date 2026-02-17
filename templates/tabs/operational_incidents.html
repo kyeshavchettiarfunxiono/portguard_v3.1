@@ -1,0 +1,97 @@
+<!-- Operational Incidents Tab -->
+<div id="operational_incidents" class="tab-panel">
+    <div class="tab-header">
+        <h2 style="margin: 0;">Create New Incident Report</h2>
+        <p style="margin: 0.35rem 0 0; color: #6b7280;">Document operational incidents with AI-powered comprehensive reporting</p>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <div class="job-card" style="padding: 2rem; color: #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="color: #f8fafc; margin: 0; font-size: 1.25rem;">Create Incident Report</h3>
+            </div>
+
+            <form id="incidentReportForm" style="display: grid; gap: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                        <h4 style="color: #f8fafc; margin: 0; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #2a3c66; padding-bottom: 0.5rem;">Basic Information</h4>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Incident Title *</label>
+                            <input id="incidentTitle" type="text" placeholder="Brief summary of the incident" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Incident Type *</label>
+                            <select id="incidentType" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                                <option value="">Select type</option>
+                                <option value="Operational Incident">Operational Incident</option>
+                                <option value="Safety">Safety</option>
+                                <option value="Security">Security</option>
+                                <option value="Equipment">Equipment</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Location</label>
+                            <input id="incidentLocation" type="text" placeholder="Where did the incident occur?" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Reporter Details</label>
+                            <input id="incidentReporter" type="text" placeholder="Reporter name" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                        <h4 style="color: #f8fafc; margin: 0; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #2a3c66; padding-bottom: 0.5rem;">Incident Timing</h4>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Incident Date & Time *</label>
+                            <input id="incidentDateTime" type="datetime-local" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                            <small style="color: #94a3b8; margin-top: 0.25rem; display: block;">2026/02/16 15:43</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #e2e8f0; font-weight: 600;">Priority Level *</label>
+                            <select id="incidentPriority" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                                <option value="">Select priority</option>
+                                <option value="Low">Low Priority</option>
+                                <option value="Medium">Medium Priority</option>
+                                <option value="High">High Priority</option>
+                                <option value="Critical">Critical Priority</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label style="color: #e2e8f0; font-weight: 600;">Incident Photos</label>
+                            <div style="color: #94a3b8; margin-bottom: 0.5rem;">Optional</div>
+                            <label style="display: block; padding: 1rem; border: 2px dashed #2a3c66; border-radius: 8px; text-align: center; cursor: pointer; background: rgba(15, 23, 42, 0.35); color: #e2e8f0;">
+                                <input id="incidentPhotos" type="file" accept="image/png,image/jpeg" multiple style="display: none;">
+                                <div>Tap to upload photos</div>
+                                <small style="color: #94a3b8;">PNG, JPG up to 10MB</small>
+                            </label>
+                            <div id="incidentPhotoHint" style="color: #94a3b8; margin-top: 0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="color: #f8fafc; margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #2a3c66; padding-bottom: 0.5rem;">Incident Details</h4>
+                    <label style="color: #e2e8f0; font-weight: 600;">Detailed Description *</label>
+                    <textarea id="incidentDescription" rows="6" placeholder="Describe what happened, when, where, who was involved, and what actions were taken. Be as detailed as possible" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 140px;" required></textarea>
+                    <div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.85rem; margin-top: 0.35rem;">
+                        <span id="incidentCharCount">0 characters</span>
+                        <span>minimum 50</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="reset" class="btn btn-secondary" style="background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Incident</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 2rem;">
+        <h3 class="section-title">Recent Incident Reports</h3>
+        <div class="job-list" id="incidentReportList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #94a3b8;">Loading incidents...</div>
+        </div>
+    </div>
+
+</div>

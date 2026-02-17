@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortGuard Verification</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .status-badge { padding: 10px 20px; border-radius: 50px; color: white; font-weight: bold; font-size: 1.2em; }
+        .verified { background: #28a745; }
+        .pending { background: #ffc107; }
+        .details { margin-top: 20px; text-align: left; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Gate Entry Verification</h2>
+        <div class="status-badge {{ status_class }}">{{ status_text }}</div>
+        <div class="details">
+            <p><strong>Container:</strong> {{ container_no }}</p>
+            <p><strong>ID:</strong> {{ container_id }}</p>
+            <p><strong>Message:</strong> {{ message }}</p>
+        </div>
+        <p style="font-size: 0.8em; color: #666; margin-top: 20px;">PORTGUARD CCMS v3 | Altron System</p>
+    </div>
+</body>
+</html>

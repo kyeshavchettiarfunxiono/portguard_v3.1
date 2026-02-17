@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortGuard CCMS - Register</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #001a4d 0%, #003366 50%, #004080 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .register-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 26, 77, 0.3);
+            overflow: hidden;
+        }
+
+        .register-header {
+            background: linear-gradient(135deg, #001a4d 0%, #003366 100%);
+            padding: 36px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .register-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(220, 0, 40, 0.1);
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo .port {
+            color: white;
+        }
+
+        .logo .guard {
+            color: #dc0028;
+        }
+
+        .tagline {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+
+        .register-body {
+            padding: 36px 30px;
+        }
+
+        .welcome-text {
+            margin-bottom: 24px;
+        }
+
+        .welcome-text h2 {
+            color: #001a4d;
+            font-size: 22px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .welcome-text p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #dc0028;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #4caf50;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #001a4d;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            color: #001a4d;
+            background: #ffffff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #dc0028;
+            box-shadow: 0 0 0 3px rgba(220, 0, 40, 0.1);
+            background: #fff;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #dc0028 0%, #a00020 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(220, 0, 40, 0.3);
+        }
+
+        .submit-button:disabled {
+            background: linear-gradient(135deg, #ccc 0%, #aaa 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .register-footer {
+            background: #f8f8f8;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .register-footer a {
+            color: #dc0028;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 560px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <div class="logo">
+                    <span class="port">Port</span><span class="guard">Guard</span>
+                </div>
+                <div class="tagline">Container Clearing & Monitoring System</div>
+            </div>
+
+            <div class="register-body">
+                <div class="welcome-text">
+                    <h2>Create Your Account</h2>
+                    <p>Register your credentials to access your PortGuard CCMS workspace.</p>
+                </div>
+
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <form id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" name="username" placeholder="e.g., kc_operator" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="your.email@company.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Minimum 8 characters" minlength="8" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select id="role" name="role" required>
+                            <option value="OPERATOR">Operator</option>
+                            <option value="SUPERVISOR">Supervisor</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="submit-button" id="registerBtn">Create Account</button>
+                </form>
+            </div>
+
+            <div class="register-footer">
+                Already registered? <a href="/login">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = message;
+            errorMsg.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.textContent = message;
+            successMsg.classList.add('show');
+        }
+
+        function clearMessages() {
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+        }
+
+        function getRedirectPath(role) {
+            if (role === 'ADMIN') {
+                return '/admin-dashboard';
+            }
+            if (role === 'SUPERVISOR') {
+                return '/supervisor-dashboard';
+            }
+            if (role === 'OPERATOR') {
+                return '/operator-dashboard';
+            }
+            return '/dashboard';
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            clearMessages();
+
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating...';
+
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            };
+
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showError(data.detail || 'Registration failed.');
+                    return;
+                }
+
+                showSuccess('Registration successful. Signing you in...');
+
+                const loginResponse = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        username: payload.email,
+                        password: payload.password
+                    })
+                });
+
+                const loginData = await loginResponse.json();
+                if (!loginResponse.ok) {
+                    showError(loginData.detail || 'Login failed after registration.');
+                    return;
+                }
+
+                const token = loginData.access_token;
+                const role = loginData.role;
+                const user = loginData.user;
+
+                localStorage.setItem('access_token', token);
+                localStorage.setItem('user_role', role);
+                localStorage.setItem('user_email', user);
+
+                document.cookie = `access_token=${token}; path=/; max-age=${7*24*60*60}; SameSite=Lax`;
+
+                setTimeout(() => {
+                    window.location.href = getRedirectPath(role);
+                }, 1200);
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError('Connection error. Please try again.');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create Account';
+            }
+        }
+    </script>
+</body>
+</html>

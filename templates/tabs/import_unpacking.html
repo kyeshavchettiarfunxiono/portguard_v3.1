@@ -1,0 +1,62 @@
+<!-- Import Unpacking Tab -->
+<div class="tab-content" id="import-unpacking-tab" style="display: none;">
+    <div class="container">
+        <!-- Module Header -->
+        <div class="dashboard-header" style="margin-bottom: 2rem;">
+            <div>
+                <h1 class="dashboard-title">📥 Import Container Unpacking</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Document FCL import container unpacking process from exterior inspection to cargo manifest</p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="showRegisterFCLForm()">
+                    ➕ Register FCL Container
+                </button>
+            </div>
+        </div>
+
+        <div id="unpackingSuccessBanner" class="unpacking-banner" style="display: none;">
+            ✅ Unpacking completed. The container moved to Review.
+        </div>
+
+        <!-- Unpacking Workflow Content (Dynamic) -->
+        <div id="import-unpacking-content">
+            <!-- Available FCL Containers -->
+            <div class="job-section">
+                <h2 class="section-title">📦 Available FCL Containers</h2>
+                <div class="job-list" id="availableFCLList">
+                    <p style="color: #888; grid-column: 1/-1;">Loading containers...</p>
+                </div>
+            </div>
+
+            <!-- Your Active Unpacking Container -->
+            <div class="job-section">
+                <h2 class="section-title">⭐ Your Active Unpacking Container</h2>
+                <div class="job-card active-job" id="activeUnpackingCard">
+                    <div class="active-badge">ACTIVE JOB</div>
+                    <div class="job-header">
+                        <div class="job-id" id="activeUnpackingId">No active container</div>
+                        <span class="job-status status-in-progress">In Progress</span>
+                    </div>
+                    <div class="job-details" id="activeUnpackingDetails" style="display: none;">
+                        <div class="job-detail">
+                            <span class="job-label">Container No:</span>
+                            <span class="job-value" id="activeUnpackingNo">-</span>
+                        </div>
+                        <div class="job-detail">
+                            <span class="job-label">Current Step:</span>
+                            <span class="job-value" id="activeUnpackingStep">-</span>
+                        </div>
+                        <div class="job-detail">
+                            <span class="job-label">Progress:</span>
+                            <span class="job-value" id="activeUnpackingProgress">-</span>
+                        </div>
+                    </div>
+                    <div class="job-actions" id="activeUnpackingActions" style="display: none;">
+                        <button class="btn btn-primary" onclick="continueUnpacking(currentUnpackingSession.containerId)">Continue Unpacking</button>
+                        <button class="btn btn-secondary" onclick="viewUnpackingDetails(currentUnpackingSession.containerId)">View Full Details</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

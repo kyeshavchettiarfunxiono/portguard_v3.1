@@ -1,0 +1,40 @@
+# Software Engineer: Kyeshav Chettiar 
+# Company FXO - Adcorp 
+# Configured and pushed onto the virtual machine for testing and evaluation for team members to use within the companies rules and regulations 
+# v3.0.0.0 
+# Docker Configured & new project directory has been created for this version on github at the following link: 
+
+# --- Environment & Secrets ---
+# Prevents sensitive Transnet credentials and DB strings from leaking
+.env
+.env.*
+
+# --- Python Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+.env/
+
+# --- Media & Evidence ---
+# Do not commit high-res Honeywell EDA52 photos to Git
+/storage/photos/
+/storage/thumbnails/
+/storage/temp/
+*.jpg
+*.jpeg
+*.png
+*.pdf
+
+# --- IDE & Local Config ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# --- Databases ---
+# If using SQLite for local dev, don't commit the DB file
+*.sqlite3
+*.db

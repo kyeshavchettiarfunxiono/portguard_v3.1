@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortGuard CCMS - Secure Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #001a4d 0%, #003366 50%, #004080 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 26, 77, 0.3);
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #001a4d 0%, #003366 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(220, 0, 40, 0.1);
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo .port {
+            color: white;
+        }
+
+        .logo .guard {
+            color: #dc0028;
+        }
+
+        .tagline {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .welcome-text {
+            margin-bottom: 30px;
+        }
+
+        .welcome-text h2 {
+            color: #001a4d;
+            font-size: 22px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .welcome-text p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #001a4d;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            color: #001a4d;
+            background: #ffffff;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #dc0028;
+            box-shadow: 0 0 0 3px rgba(220, 0, 40, 0.1);
+            background: #fff;
+        }
+
+        .form-group input:-webkit-autofill,
+        .form-group input:-webkit-autofill:hover,
+        .form-group input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+            -webkit-text-fill-color: #001a4d !important;
+            box-shadow: 0 0 0 30px #ffffff inset !important;
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 13px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .remember-me input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: #dc0028;
+            width: 16px;
+            height: 16px;
+        }
+
+        .remember-me label {
+            margin: 0;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .forgot-password {
+            color: #dc0028;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #a00020;
+            text-decoration: underline;
+        }
+
+        .sign-in-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #dc0028 0%, #a00020 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(220, 0, 40, 0.3);
+        }
+
+        .sign-in-button:hover {
+            background: linear-gradient(135deg, #a00020 0%, #7a0018 100%);
+            box-shadow: 0 6px 16px rgba(220, 0, 40, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .sign-in-button:active {
+            transform: translateY(0);
+        }
+
+        .sign-in-button:disabled {
+            background: linear-gradient(135deg, #ccc 0%, #aaa 100%);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .sign-in-button.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #dc0028;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #4caf50;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-footer {
+            background: #f8f8f8;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .login-footer p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .company-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .company-info span {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .company-logo {
+            font-weight: 700;
+            color: #001a4d;
+            font-size: 11px;
+        }
+
+        /* Security notice */
+        .security-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .security-notice::before {
+            content: '🔒';
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-header {
+                padding: 30px 20px;
+            }
+
+            .login-body {
+                padding: 30px 20px;
+            }
+
+            .login-footer {
+                padding: 15px 20px;
+            }
+
+            .logo {
+                font-size: 28px;
+            }
+
+            .welcome-text h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Header with branding -->
+            <div class="login-header">
+                <div class="logo">
+                    <span class="port">Port</span><span class="guard">Guard</span>
+                </div>
+                <div class="tagline">Container Clearing & Monitoring System</div>
+            </div>
+
+            <!-- Login form -->
+            <div class="login-body">
+                <div class="welcome-text">
+                    <h2>Secure Access</h2>
+                    <p>Enter your credentials to access your PortGuard CCMS account and manage container operations.</p>
+                </div>
+
+                <!-- Messages -->
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <!-- Security notice -->
+                <div class="security-notice">
+                    Your connection is secure and encrypted. All activity is monitored and logged.
+                </div>
+
+                <!-- Login form -->
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <!-- Email field -->
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="your.email@company.com"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+
+                    <!-- Password field -->
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password"
+                        >
+                    </div>
+
+                    <!-- Remember me & Forgot password -->
+                    <div class="form-actions">
+                        <label class="remember-me">
+                            <input type="checkbox" id="rememberMe" name="rememberMe">
+                            <label for="rememberMe">Remember me</label>
+                        </label>
+                        <a href="#forgot-password" class="forgot-password">Forgot password?</a>
+                    </div>
+
+                    <!-- Sign In button -->
+                    <button type="submit" class="sign-in-button" id="signInBtn">
+                        Sign In
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <p>
+                    Having trouble logging in?<br>
+                    <strong>Contact your supervisor</strong> for assistance
+                </p>
+                <p style="margin-top: 12px;">
+                    Need access? <a href="/register" class="forgot-password">Create an account</a>
+                </p>
+                <div class="company-info">
+                    <span>Powered by</span>
+                    <span class="company-logo">FUNXION • ADCORP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle login submission
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const signInBtn = document.getElementById('signInBtn');
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+
+            // Clear previous messages
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+            errorMsg.innerHTML = '';
+            successMsg.innerHTML = '';
+
+            // Validate inputs
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            // Show loading state
+            signInBtn.disabled = true;
+            signInBtn.classList.add('loading');
+            signInBtn.textContent = 'Signing In';
+
+            try {
+                // Call login endpoint
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        username: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success
+                    const token = data.access_token;
+                    const role = data.role;
+                    const user = data.user;
+
+                    // Store token and user info in localStorage
+                    localStorage.setItem('access_token', token);
+                    localStorage.setItem('user_role', role);
+                    localStorage.setItem('user_email', user);
+                    
+                    // Also set as cookie for server-side verification
+                    document.cookie = `access_token=${token}; path=/; max-age=${7*24*60*60}; SameSite=Lax`;
+
+                    if (rememberMe) {
+                        localStorage.setItem('rememberEmail', email);
+                    } else {
+                        localStorage.removeItem('rememberEmail');
+                    }
+
+                    showSuccess('Login successful! Redirecting...');
+
+                    // Redirect based on user role
+                    let redirectPath = '/dashboard'; // Default
+                    
+                    if (role === 'OPERATOR') {
+                        redirectPath = '/operator-dashboard';
+                    } else if (role === 'SUPERVISOR') {
+                        redirectPath = '/supervisor-dashboard';
+                    } else if (role === 'ADMIN') {
+                        redirectPath = '/admin-dashboard';
+                    }
+
+                    setTimeout(() => {
+                        window.location.href = redirectPath;
+                    }, 1500);
+                } else {
+                    // Error response
+                    const errorDetail = data.detail || 'Login failed. Please try again.';
+                    showError(errorDetail);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Connection error. Please check your internet and try again.');
+            } finally {
+                // Reset button
+                signInBtn.disabled = false;
+                signInBtn.classList.remove('loading');
+                signInBtn.textContent = 'Sign In';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.innerHTML = message;
+            errorMsg.classList.add('show');
+            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.innerHTML = message;
+            successMsg.classList.add('show');
+        }
+
+        // Email validation
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Restore remembered email on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const rememberedEmail = localStorage.getItem('rememberEmail');
+            if (rememberedEmail) {
+                document.getElementById('email').value = rememberedEmail;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
+        // Allow Enter key to submit form
+        document.getElementById('email').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('password').focus();
+            }
+        });
+
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

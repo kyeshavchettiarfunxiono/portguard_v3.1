@@ -1,0 +1,58 @@
+<!-- Admin Overview Tab -->
+<div id="admin_overview" class="tab-panel">
+    <div class="tab-header">
+        <h2 style="margin: 0; color: #0f1d3d;">Admin Dashboard</h2>
+        <p style="margin: 0.35rem 0 0; color: #6b7280;">System configuration and revenue impact insights.</p>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 1.5rem;">
+        <div class="stat-card">
+            <div class="stat-label">Active Jobs</div>
+            <div class="stat-value" id="adminActiveJobs">-</div>
+            <div class="stat-subtext">packing + unpacking</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Downtime Cost (ZAR)</div>
+            <div class="stat-value" id="adminDowntimeCost">-</div>
+            <div class="stat-subtext">total revenue impact</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Hourly Rate</div>
+            <div class="stat-value" id="adminHourlyRate">-</div>
+            <div class="stat-subtext">current config</div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 2rem;">
+        <h3 class="section-title">Configuration</h3>
+        <div class="job-card" style="margin-bottom: 1.5rem;">
+            <div class="job-details" style="grid-template-columns: 1fr auto; align-items: end;">
+                <div class="job-detail">
+                    <span class="job-label">Downtime Hourly Rate (ZAR)</span>
+                    <input id="adminRateInput" type="number" min="1" step="1" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #ccd6e0;">
+                </div>
+                <button class="logout-btn" style="width: 140px; height: 42px;" onclick="updateDowntimeRate()">Update Rate</button>
+            </div>
+            <div class="job-detail" style="margin-top: 0.6rem;">
+                <span class="job-label">Hint:</span>
+                <span class="job-value">Used for revenue impact calculations</span>
+            </div>
+        </div>
+
+        <h3 class="section-title" style="margin-top: 2rem;">Revenue Impact by Vessel</h3>
+        <div class="job-card" style="margin-bottom: 1.5rem;">
+            <div class="job-details" style="grid-template-columns: auto 1fr; align-items: center;">
+                <div class="job-detail">
+                    <span class="job-label">Timeframe</span>
+                    <select id="adminRevenueFilter" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ccd6e0;">
+                        <option value="">All</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+            </div>
+            <div id="adminRevenueList" style="margin-top: 1rem; display: grid; gap: 0.6rem;"></div>
+        </div>
+    </div>
+</div>

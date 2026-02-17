@@ -1,0 +1,134 @@
+<!-- Export Packing Tab -->
+<div id="export_packing" class="tab-panel">
+    <div class="tab-header">
+        <h2 style="margin: 0;">📦 Export Packing Container Management</h2>
+        <button onclick="openNewContainerModal()" class="btn btn-primary">➕ Register New Container</button>
+    </div>
+
+    <!-- Available Containers -->
+    <div class="job-section">
+        <h3 class="section-title">📋 Available For Packing</h3>
+        <div class="job-list" id="exportContainersList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
+                <p>Loading containers...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Summary Cards -->
+    <div class="stats-grid" style="margin-top: 2rem;">
+        <div class="stat-card">
+            <div class="stat-label">Available Containers</div>
+            <div class="stat-value" id="exportAvailableCount">0</div>
+            <div class="stat-subtext">ready for packing</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value" id="exportInProgressCount">0</div>
+            <div class="stat-subtext">currently packing</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Packed Containers</div>
+            <div class="stat-value" id="exportPackedCount">0</div>
+            <div class="stat-subtext">ready for dispatch</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Vessels This Week</div>
+            <div class="stat-value" id="exportVesselsCount">0</div>
+            <div class="stat-subtext">active bookings</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab-specific functions - called by TabLoader.triggerTabLoader()
+
+function loadExportContainers() {
+    // Implemented in containers.js via Containers.loadContainers()
+    console.log('📦 Loading export containers for packing tab...');
+    if (window.Containers && window.Containers.loadContainers) {
+        window.Containers.loadContainers().then(containers => {
+            displayExportContainers(containers);
+        }).catch(err => console.error('Error loading containers:', err));
+    } else {
+        console.warn('Containers module not available yet');
+    }
+}
+
+function displayExportContainers(containers) {
+    const list = document.getElementById('exportContainersList');
+    if (!list) return;
+
+    const activePackingId = localStorage.getItem('active_packing_container_id');
+    
+    const registeredContainers = containers.filter(c => {
+        const status = normalizeStatus(c.status);
+        return status === 'REGISTERED' || status === 'PACKING';
+    });
+    if (registeredContainers.length === 0) {
+        list.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #999;">No containers available for packing. Create a new container to get started.</div>';
+        return;
+    }
+    
+    list.innerHTML = registeredContainers.map(c => {
+        const status = normalizeStatus(c.status);
+        const isPaused = status === 'PACKING' && (!activePackingId || String(c.id) !== String(activePackingId));
+        const statusText = isPaused ? 'PAUSED' : status.replace('_', ' ');
+        const statusStyle = isPaused
+            ? 'background: #ffe8cc; color: #8a4b08;'
+            : 'background: #fff3cd; color: #856404;';
+        const progress = getProgressForStatus(status);
+        return `
+            <div class="container-card" style="cursor: pointer;" onclick="viewExportContainerDetails('${c.id}')">
+                <div class="container-card-header">
+                    <span class="container-number">${c.container_no}</span>
+                    <span class="container-type">${normalizeType(c.type)}</span>
+                </div>
+                <div class="container-card-details">
+                    <div><span>Client:</span> <span>${c.client || 'N/A'}</span></div>
+                    <div><span>Status:</span> <span class="status-badge" style="${statusStyle}">${statusText}</span></div>
+                </div>
+                <div class="container-card-footer">
+                    <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%"></div></div>
+                </div>
+                <button class="btn btn-primary" onclick="event.stopPropagation(); startPacking('${c.id}')" style="width: 100%; margin-top: 1rem;">▶️ ${status === 'PACKING' ? 'Continue Packing' : 'Start Packing'}</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function normalizeEnum(value) {
+    if (value && typeof value === 'object' && 'value' in value) {
+        return value.value;
+    }
+    return value ?? '';
+}
+
+function normalizeStatus(value) {
+    return String(normalizeEnum(value));
+}
+
+function normalizeType(value) {
+    return String(normalizeEnum(value));
+}
+
+function getProgressForStatus(status) {
+    const statusMap = { 'REGISTERED': 0, 'PACKING': 50, 'PENDING_REVIEW': 95, 'FINALIZED': 100 };
+    return statusMap[status] || 0;
+}
+
+function startPacking(containerId) {
+    if (typeof window.startPacking === 'function') {
+        window.startPacking(containerId);
+    }
+}
+
+function viewExportContainerDetails(containerId) {
+    console.log('Viewing container details:', containerId);
+    if (window.Containers && window.Containers.viewContainerDetails) {
+        window.Containers.viewContainerDetails(containerId);
+    }
+}
+
+window.displayExportContainers = displayExportContainers;
+</script>

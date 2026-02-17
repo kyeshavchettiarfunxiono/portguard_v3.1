@@ -1,0 +1,61 @@
+<!-- Truck Unpacking Tab -->
+<div id="truck_unpacking" class="tab-panel">
+    <div class="tab-header">
+        <h2 style="margin: 0;">🚛 Truck Offloading Management</h2>
+        <button onclick="openTruckOffloadingModal()" class="btn btn-primary">+ New Truck</button>
+    </div>
+
+    <!-- Active Truck Unpacking -->
+    <div class="job-section">
+        <h3 class="section-title">⚙️ Trucks Being Unloaded</h3>
+        <div class="job-list" id="activeTruckUnpackingList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
+                <p>No trucks currently being unloaded</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Trucks for Unpacking -->
+    <div class="job-section">
+        <h3 class="section-title">📥 Trucks Awaiting Unpacking</h3>
+        <div class="job-list" id="awaitingTruckUnpackingList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
+                <p>Loading trucks...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Completions -->
+    <div class="job-section">
+        <h3 class="section-title">✅ Completed Today</h3>
+        <div class="job-list" id="completedTruckUnpackingList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">
+                <p>No completions yet today</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Stats -->
+    <div class="stats-grid" style="margin-top: 2rem;">
+        <div class="stat-card">
+            <div class="stat-label">Active Unpackings</div>
+            <div class="stat-value" id="truckUnpackingActiveCount">0</div>
+            <div class="stat-subtext">in progress</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg Unload Time</div>
+            <div class="stat-value" id="truckUnpackingAvgTime">-</div>
+            <div class="stat-subtext">hours</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Items Processed</div>
+            <div class="stat-value" id="truckUnpackingItemsCount">0</div>
+            <div class="stat-subtext">today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Issues Found</div>
+            <div class="stat-value" id="truckUnpackingIssuesCount">0</div>
+            <div class="stat-subtext">damage reports</div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,75 @@
+<!-- Overview Dashboard Tab -->
+<div class="tab-content" id="overview">
+    <!-- Header -->
+    <div class="dashboard-header" style="margin-bottom: 2rem;">
+        <div>
+            <h1 class="dashboard-title">📊 Dashboard Overview</h1>
+            <p style="color: #888; margin-top: 0.5rem;">Real-time status of operations and container processing</p>
+        </div>
+    </div>
+
+    <!-- Status Statistics -->
+    <div class="stats-grid" style="margin-bottom: 2rem;">
+        <div class="stat-card">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📦</div>
+            <div class="stat-label">Total Containers</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-subtext">All processed containers</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-subtext">Awaiting inspection</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚠️</div>
+            <div class="stat-label">Repairs Needed</div>
+            <div class="stat-value" id="statRepairs">0</div>
+            <div class="stat-subtext">Damaged containers</div>
+        </div>
+        <div class="stat-card">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔄</div>
+            <div class="stat-label">Active Jobs</div>
+            <div class="stat-value" id="statActive">-</div>
+            <div class="stat-subtext">Currently working</div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="nav-tabs" style="margin-bottom: 2rem;">
+        <button class="nav-tab active" onclick="UI.switchTab('active-jobs')">🔄 Active (<span id="countActive">0</span>)</button>
+        <button class="nav-tab" onclick="UI.switchTab('new-jobs')">⏳ New (<span id="countNew">0</span>)</button>
+        <button class="nav-tab" onclick="UI.switchTab('ready')">✅ Ready (<span id="countReady">0</span>)</button>
+        <button class="nav-tab" onclick="UI.switchTab('completed')">🎉 Completed (<span id="countCompleted">0</span>)</button>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="tab-content active" id="active-jobs">
+        <h2 class="section-title">🔄 Active Jobs</h2>
+        <div class="job-list" id="activeJobsList">
+            <p style="color: #888; grid-column: 1/-1;">Loading active jobs...</p>
+        </div>
+    </div>
+
+    <div class="tab-content" id="new-jobs" style="display: none;">
+        <h2 class="section-title">⏳ New Jobs</h2>
+        <div class="job-list" id="newJobsList">
+            <p style="color: #888; grid-column: 1/-1;">Loading new jobs...</p>
+        </div>
+    </div>
+
+    <div class="tab-content" id="ready" style="display: none;">
+        <h2 class="section-title">✅ Ready for Work</h2>
+        <div class="job-list" id="readyJobsList">
+            <p style="color: #888; grid-column: 1/-1;">Loading containers...</p>
+        </div>
+    </div>
+
+    <div class="tab-content" id="completed" style="display: none;">
+        <h2 class="section-title">🎉 Completed Jobs</h2>
+        <div class="job-list" id="completedJobsList">
+            <p style="color: #888; grid-column: 1/-1;">Loading completed jobs...</p>
+        </div>
+    </div>
+</div>

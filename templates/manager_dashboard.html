@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortGuard CCMS v3 - Manager Dashboard</title>
+    <link rel="stylesheet" href="/static/css/operator_dashboard.css?v=20260216.1">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">⚙️ Manager</div>
+            <div class="sidebar-subtitle">Unified Modules</div>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a class="sidebar-link active" onclick="TabLoader.switchTab('manager_overview'); return false;"><span class="sidebar-icon">📊</span><span>Dashboard</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('transnet_dashboard'); return false;"><span class="sidebar-icon">🚆</span><span>Transnet Dashboard</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('vessel_bookings'); return false;"><span class="sidebar-icon">🛳️</span><span>Vessel Bookings</span></a></li>
+
+            <li style="margin: 1rem 0 0.35rem 0; font-size: 0.72rem; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.08em;">Operational Modules</li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('export_packing'); return false;"><span class="sidebar-icon">📦</span><span>Export Packing</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('export_truck'); return false;"><span class="sidebar-icon">🚚</span><span>Export Truck</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('import_unpacking'); return false;"><span class="sidebar-icon">📥</span><span>Import Unpacking</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('truck_unpacking'); return false;"><span class="sidebar-icon">🚛</span><span>Truck Unpacking</span></a></li>
+
+            <li style="margin: 1rem 0 0.35rem 0; font-size: 0.72rem; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.08em;">Planning</li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('truck_planning'); return false;"><span class="sidebar-icon">🗺️</span><span>Truck Planning</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('container_planning'); return false;"><span class="sidebar-icon">🧭</span><span>Container Planning</span></a></li>
+
+            <li style="margin: 1rem 0 0.35rem 0; font-size: 0.72rem; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.08em;">Reports</li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('export_analytics'); return false;"><span class="sidebar-icon">📈</span><span>Export Analytics</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('damage'); return false;"><span class="sidebar-icon">🔴</span><span>Damage Reports</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('operational_incidents'); return false;"><span class="sidebar-icon">⚠️</span><span>Operational Incidents</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('downtime'); return false;"><span class="sidebar-icon">⏱️</span><span>Downtime Tracker</span></a></li>
+
+            <li style="margin: 1rem 0 0.35rem 0; font-size: 0.72rem; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.08em;">Clients</li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('export_clients'); return false;"><span class="sidebar-icon">🧾</span><span>Export Clients</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('import_clients'); return false;"><span class="sidebar-icon">📥</span><span>Import Clients</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('client_portal'); return false;"><span class="sidebar-icon">🛰️</span><span>Client Portal</span></a></li>
+            <li><a class="sidebar-link" onclick="TabLoader.switchTab('billing_settings'); return false;"><span class="sidebar-icon">💳</span><span>Billing Settings</span></a></li>
+        </ul>
+    </aside>
+
+    <header>
+        <div class="header-top">
+            <div class="logo">PortGuard CCMS v3</div>
+            <div class="user-info">
+                <div class="network-status online" id="networkStatus">Online</div>
+                <div class="user-profile">
+                    <div class="profile-avatar" id="profileAvatar">KC</div>
+                    <div class="profile-info">
+                        <div class="profile-name" id="profileName">User</div>
+                        <div class="profile-role" id="profileRole">Manager</div>
+                    </div>
+                </div>
+                <a class="btn btn-secondary" href="/supervisor-dashboard" style="text-decoration: none; height: 38px; display: inline-flex; align-items: center;">Supervisor View</a>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="TabLoader.switchTab('manager_overview')">📊 Overview</button>
+            <button class="nav-tab" onclick="TabLoader.switchTab('truck_planning')">🗺️ Planning</button>
+            <button class="nav-tab" onclick="TabLoader.switchTab('export_analytics')">📈 Reports</button>
+            <button class="nav-tab" onclick="TabLoader.switchTab('export_clients')">🧾 Clients</button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div id="tab-container"></div>
+        </div>
+    </main>
+
+    <!-- ====================================
+         MODALS (Shared with Operator)
+         ==================================== -->
+
+    <div id="newContainerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: #0f1d3d; margin: 0; font-size: 1.5rem;">📦 Register Export Container</h2>
+                <button onclick="closeNewContainerModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <form id="newContainerForm" onsubmit="submitNewContainer(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <h3 style="color: #0f1d3d; margin: 0; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem;">Container Details</h3>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Container Number *</label>
+                        <input type="text" id="containerNumber" placeholder="e.g., MSMU4557285" maxlength="11" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                        <small style="color: #888;">Format: 4 letters + 7 numbers</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Client *</label>
+                        <select id="client" onchange="onClientChange(event)" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                            <option value="">Select client</option>
+                            <option value="HULAMIN">Hulamin</option>
+                            <option value="PG_BISON">PG Bison</option>
+                        </select>
+                    </div>
+                    <div id="packing-ref-section"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <h3 style="color: #0f1d3d; margin: 0; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem;">Booking Details</h3>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Vessel Booking *</label>
+                        <select id="vesselBooking" onchange="onVesselBookingChange(event)" disabled style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                            <option value="">Select client first</option>
+                        </select>
+                        <small style="color: #999; margin-top: 0.25rem; display: block;"><span id="bookingAvailableCount">0</span> booking(s) available</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Container Type</label>
+                        <select id="containerType" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">40ft Standard</option>
+                            <option value="20ft">20ft Standard</option>
+                            <option value="40ft">40ft Standard</option>
+                            <option value="40ft_HC">40ft High Cube</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label style="color: #0f1d3d; font-weight: 600;">Additional Notes</label>
+                        <textarea id="additionalNotes" placeholder="Any special instructions..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px; resize: vertical;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="button" onclick="closeNewContainerModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Register</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="fclContainerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: #0f1d3d; margin: 0; font-size: 1.5rem;">📦 Register FCL Container</h2>
+                <button onclick="closeFCLModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <form id="fclRegistrationForm" onsubmit="submitFCLRegistration(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Container Number *</label>
+                        <input type="text" id="fclContainerNumber" name="container_no" placeholder="MSMU..." maxlength="11" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; font-family: monospace;">
+                        <small style="color: #888;">Format: 4 letters + 7 numbers</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Container Type *</label>
+                        <select id="fclContainerType" name="type" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select...</option>
+                            <option value="20ft">20ft</option>
+                            <option value="40ft">40ft</option>
+                            <option value="40ft_HC">40ft HC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Seal Number</label>
+                        <input type="text" id="fclSealNumber" name="seal_no" placeholder="Seal #..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Cargo Type</label>
+                        <input type="text" id="fclCargoType" name="cargo_type" placeholder="e.g., Steel, Groupage Cargo" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Additional Notes</label>
+                        <textarea id="fclNotes" name="notes" placeholder="Any special handling notes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 90px; resize: vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Vessel Booking *</label>
+                        <select name="booking_id" id="fclBooking" onchange="updateFCLBookingDetails()" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select booking...</option>
+                        </select>
+                        <small style="color: #888;">Choose a booking to auto-fill client and vessel</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Client</label>
+                        <input type="text" id="fclClient" name="client" placeholder="Auto-populated" readonly style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; background: #f7f7f7;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Vessel Name</label>
+                        <input type="text" id="fclVesselName" placeholder="Auto-populated" readonly style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; background: #f7f7f7;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Arrival Date *</label>
+                        <input type="datetime-local" id="fclArrivalDate" name="arrival_date" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Unpacking Location</label>
+                        <input type="text" id="fclUnpackingLocation" name="unpacking_location" placeholder="e.g., Warehouse 3" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: auto;">
+                        <button type="button" onclick="closeFCLModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Register</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="packingWorkflowModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; overflow-y: auto;">
+        <div style="background: white; margin: 2rem auto; border-radius: 12px; max-width: 1000px; width: 95%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="background: linear-gradient(135deg, #0f1d3d 0%, #1a2d4d 100%); color: white; padding: 2rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.5rem;">📦 Packing Workflow</h2>
+                    <p id="packingContainerDisplay" style="margin-top: 0.5rem; opacity: 0.9;">Container: --</p>
+                </div>
+                <button onclick="closePackingWorkflow()" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: white;">✕</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" id="packingStepChips">
+                    <span class="job-status status-ready" id="packingStepBefore">1. Before Packing</span>
+                    <span class="job-status status-ready" id="packingStepCargo">2. Cargo Photos</span>
+                    <span class="job-status status-ready" id="packingStepAfter">3. After Packing</span>
+                    <span class="job-status status-ready" id="packingStepSeal">4. Sealing</span>
+                </div>
+            </div>
+            <div id="packingStepContent" style="padding: 0 2rem 2rem;">
+                <h3 id="packingStepTitle" style="margin: 0 0 0.75rem 0; color: #0f1d3d;">Step</h3>
+                <p id="packingStepInstructions" style="color: #555; margin-bottom: 1rem;"></p>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <div class="job-card" style="flex: 1; min-width: 220px;">
+                        <div class="job-detail"><span class="job-label">Required Photos:</span> <span class="job-value" id="packingRequiredPhotos">0</span></div>
+                        <div class="job-detail"><span class="job-label">Uploaded Photos:</span> <span class="job-value" id="packingUploadedPhotos">0</span></div>
+                    </div>
+                    <div class="job-card" style="flex: 1; min-width: 220px;">
+                        <div class="job-detail"><span class="job-label">Container Type:</span> <span class="job-value" id="packingContainerType">-</span></div>
+                        <div class="job-detail"><span class="job-label">Current Step:</span> <span class="job-value" id="packingCurrentStep">-</span></div>
+                    </div>
+                </div>
+
+                <div id="packingSealSection" style="display: none; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Seal Number *</label>
+                        <input type="text" id="packingSealNumber" placeholder="Seal number" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label style="color: #0f1d3d; font-weight: 600;">Gross Mass (kg)</label>
+                            <input type="text" id="packingGrossMass" placeholder="Optional" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #0f1d3d; font-weight: 600;">Tare Weight (kg)</label>
+                            <input type="text" id="packingTareWeight" placeholder="Optional" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="packingPhotoInput" accept="image/*" multiple style="display: none;">
+
+                <div id="packingPhotoSection" style="margin-top: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem;">
+                        <h4 style="margin: 0; color: #0f1d3d;">Captured Photos</h4>
+                        <span id="packingPhotoCountText" style="color: #666; font-size: 0.95rem;">0 photos</span>
+                    </div>
+                    <div id="packingPhotoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;">
+                        <div id="packingPhotoEmpty" style="grid-column: 1 / -1; padding: 1rem; text-align: center; color: #888; border: 1px dashed #d8dce6; border-radius: 8px;">
+                            No photos captured yet.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" onclick="openPackingPhotoPicker()" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">📷 Open Camera</button>
+                    <button class="btn" onclick="pausePackingAndRelease()" style="flex: 1; background: #ff9800; color: white; border: none;">⏸️ Pause & Release</button>
+                    <button class="btn btn-primary" id="packingNextBtn" onclick="advancePackingStep()" style="flex: 1;">Next Step</button>
+                    <button class="btn" id="packingCompleteBtn" onclick="completePackingSeal()" style="flex: 1; background: #28a745; color: white; border: none; display: none;">Complete & Finish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="unpackingWorkflowModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; overflow-y: auto;">
+        <div style="background: white; margin: 2rem auto; border-radius: 12px; max-width: 1000px; width: 95%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="background: linear-gradient(135deg, #0f1d3d 0%, #1a2d4d 100%); color: white; padding: 2rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div><h2 style="margin: 0; font-size: 1.5rem;">📥 Unpacking Workflow</h2>
+                <p id="unpackingContainerDisplay" style="margin-top: 0.5rem; opacity: 0.9;">Container: --</p></div>
+                <button onclick="closeUnpackingWorkflow()" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: white;">✕</button>
+            </div>
+            <div style="padding: 2rem;">
+                <h3 style="margin: 0 0 1.5rem 0; color: #0f1d3d;">Workflow Steps</h3>
+                <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;" id="workflowSteps"></div>
+            </div>
+            <div id="unpackingStepContent" style="padding: 2rem; min-height: 400px;"></div>
+            <div style="padding: 2rem; border-top: 1px solid #e0e0e0; display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeUnpackingWorkflow()" class="btn btn-secondary" style="background: #f0f0f0; color: #333; border: 1px solid #ddd;">Close</button>
+                <button onclick="saveUnpackingProgress()" class="btn btn-primary">Save</button>
+                <button onclick="completeUnpacking()" class="btn" style="background: #28a745; color: white; border: none;">Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="photoUploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2100; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 95%;">
+            <h2 style="color: #0f1d3d; margin: 0 0 1rem 0;">📷 Upload Photos</h2>
+            <p id="photoModalStep" style="color: #666; margin-bottom: 1rem;">Step: --</p>
+            <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 2rem; text-align: center; background: #f8f9ff; margin-bottom: 1.5rem;">
+                <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('photoFileInput').click()" class="btn btn-secondary">Select Photos</button>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closePhotoModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                <button onclick="uploadPhotos()" class="btn btn-primary" style="flex: 1;">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="damageReportModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2100; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto;">
+            <h2 id="damageModalTitle" style="color: #0f1d3d; margin: 0 0 1rem 0;">🔴 Report Damage</h2>
+            <form onsubmit="submitDamageReport(event)" class="damage-form">
+                <div>
+                    <label class="damage-label">Container Selection Method *</label>
+                    <div class="damage-toggle">
+                        <button type="button" id="damageSelectExistingBtn" class="toggle-pill active" onclick="setDamageContainerMode('existing')">Select Existing Container</button>
+                        <button type="button" id="damageEnterNumberBtn" class="toggle-pill" onclick="setDamageContainerMode('new')">Enter Container Number</button>
+                    </div>
+                </div>
+
+                <div id="damageExistingSection">
+                    <label class="damage-label">Container *</label>
+                    <select id="damageContainerSelect" required></select>
+                </div>
+
+                <div id="damageNewSection" style="display: none;">
+                    <label class="damage-label">Container Number *</label>
+                    <input type="text" id="damageContainerNumber" placeholder="e.g., MSMU4557285" maxlength="11" />
+                    <label class="damage-label" style="margin-top: 0.75rem;">Booking *</label>
+                    <select id="damageBookingSelect"></select>
+                    <small class="damage-help">New containers require a booking selection for registration.</small>
+                </div>
+
+                <div class="damage-grid">
+                    <div>
+                        <label class="damage-label">Damage Type *</label>
+                        <select id="damageType" required>
+                            <option value="">Select type...</option>
+                            <option value="DENT">Dent</option>
+                            <option value="SCRATCH">Scratch</option>
+                            <option value="HOLE">Hole</option>
+                            <option value="RUST">Rust</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="damage-label">Severity Level *</label>
+                        <select id="damageSeverity" required>
+                            <option value="">Select severity...</option>
+                            <option value="MINOR">Minor</option>
+                            <option value="MODERATE">Moderate</option>
+                            <option value="MAJOR">Major</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                        <small class="damage-help">Major/Critical will block operations until repaired.</small>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="damage-label">Damage Location *</label>
+                    <input type="text" id="damageLocation" placeholder="e.g., Front left corner, Door seal" required />
+                </div>
+
+                <div>
+                    <label class="damage-label">Damage Description *</label>
+                    <textarea id="damageDescription" placeholder="Provide details about the damage" required></textarea>
+                </div>
+
+                <div>
+                    <label class="damage-label">Damage Photos *</label>
+                    <div class="damage-photo-box">
+                        <input type="file" id="damagePhotoInput" multiple accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('damagePhotoInput').click()">Open Camera / Upload</button>
+                        <div id="damagePhotoCount" class="damage-help">No photos selected</div>
+                    </div>
+                    <small class="damage-help">At least one clear photo is required.</small>
+                </div>
+
+                <div class="damage-actions">
+                    <button type="button" onclick="closeDamageModal()" class="btn btn-secondary" style="background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                    <button type="submit" id="damageSubmitBtn" class="btn btn-primary">Report Damage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="truckOffloadingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2200; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: #0f1d3d; margin: 0; font-size: 1.5rem;">🚛 Register New Truck</h2>
+                <button onclick="closeTruckOffloadingModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <form id="truckOffloadingForm" onsubmit="submitTruckOffloading(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Truck Registration *</label>
+                        <input type="text" id="truckRegistration" placeholder="e.g., ABC-123-GP" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Driver Name *</label>
+                        <input type="text" id="truckDriverName" placeholder="Driver full name" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Driver License (Optional)</label>
+                        <input type="text" id="truckDriverLicense" placeholder="Driver license number" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Transporter Name *</label>
+                        <input type="text" id="truckTransporterName" placeholder="Transport company" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Client *</label>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                                <input type="radio" name="truckClientMode" value="list" checked onclick="toggleTruckClientMode('list')"> Select from list
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                                <input type="radio" name="truckClientMode" value="manual" onclick="toggleTruckClientMode('manual')"> Enter manually
+                            </label>
+                        </div>
+                        <select id="truckClientSelect" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;"></select>
+                        <input type="text" id="truckClientManual" placeholder="Client name" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; display: none;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Delivery Note Number *</label>
+                        <input type="text" id="truckDeliveryNote" placeholder="Delivery note reference" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Commodity Type *</label>
+                            <input type="text" id="truckCommodityType" placeholder="e.g., Maize" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Quantity *</label>
+                            <input type="number" id="truckQuantity" min="0" step="0.01" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Unit *</label>
+                            <select id="truckUnit" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                                <option value="Tons">Tons</option>
+                                <option value="Bags">Bags</option>
+                                <option value="Pallets">Pallets</option>
+                                <option value="Boxes">Boxes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Horse Registration (Optional)</label>
+                        <input type="text" id="truckHorseRegistration" placeholder="Horse registration" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Additional Notes</label>
+                        <textarea id="truckNotes" placeholder="Any additional notes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px;"></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; grid-column: 1 / -1;">
+                    <button type="button" onclick="closeTruckOffloadingModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Register Truck</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="truckOffloadingWorkflowModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2200; overflow-y: auto;">
+        <div style="background: white; margin: 2rem auto; border-radius: 12px; max-width: 900px; width: 95%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="background: #0f1d3d; color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.4rem;">🚛 Truck Offloading Workflow</h2>
+                    <p style="margin-top: 0.5rem; opacity: 0.9;">Truck: <span id="truckWorkflowId">--</span></p>
+                </div>
+                <button onclick="closeTruckWorkflow()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: white;">✕</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div><strong>Driver:</strong> <span id="truckWorkflowDriver">--</span></div>
+                    <div><strong>Client:</strong> <span id="truckWorkflowClient">--</span></div>
+                    <div><strong>Current Step:</strong> <span id="truckWorkflowStep">--</span></div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Arrival Photos</div>
+                        <div id="truckArrivalCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openTruckPhotoModal('ARRIVAL_PHOTOS')">Open Camera</button>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Damage Photos</div>
+                        <div id="truckDamageCount">0/1</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openTruckPhotoModal('DAMAGE_ASSESSMENT')">Open Camera</button>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Offloading Photos</div>
+                        <div id="truckOffloadingCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openTruckPhotoModal('OFFLOADING_PHOTOS')">Open Camera</button>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Completion Photos</div>
+                        <div id="truckCompletionCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openTruckPhotoModal('COMPLETION_PHOTOS')">Open Camera</button>
+                    </div>
+                </div>
+                <div style="background: #f9fafc; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h3 style="margin: 0; font-size: 1rem; color: #0f1d3d;">Damage Assessment</h3>
+                        <div style="font-size: 0.9rem;">Status: <span id="truckDamageAssessmentStatus">Pending</span></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div>
+                            <label style="font-weight: 600;">Damage Type</label>
+                            <input type="text" id="truckDamageType" placeholder="e.g., Trailer dent" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Severity</label>
+                            <select id="truckDamageSeverity" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                                <option value="">Select severity</option>
+                                <option value="Minor">Minor</option>
+                                <option value="Moderate">Moderate</option>
+                                <option value="Severe">Severe</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Location</label>
+                            <input type="text" id="truckDamageLocation" placeholder="e.g., Left rear panel" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Description</label>
+                            <textarea id="truckDamageDescription" placeholder="Describe damage..." style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px;"></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.75rem;">
+                        <button class="btn btn-secondary" onclick="reportTruckDamage()">Report Damage</button>
+                        <button class="btn btn-secondary" onclick="openTruckPhotoModal('DAMAGE_ASSESSMENT')">Add Damage Photos</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <label style="font-weight: 600;">Driver Acknowledgement</label>
+                            <input type="text" id="truckDamageDriverName" placeholder="Driver full name" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Driver Comments (Optional)</label>
+                            <input type="text" id="truckDamageDriverComments" placeholder="Dispute or notes" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="completeTruckDamageAssessment()">Complete Damage Assessment</button>
+                </div>
+                <div style="background: #f9fafc; border-radius: 10px; padding: 1rem;">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #0f1d3d;">Driver Signature & Completion</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="font-weight: 600;">Driver Signature</label>
+                            <input type="text" id="truckFinalSignoffName" placeholder="Driver full name" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Actual Quantity (Optional)</label>
+                            <input type="number" id="truckActualQuantity" min="0" step="0.01" placeholder="Actual quantity offloaded" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-weight: 600;">Variance Notes</label>
+                            <textarea id="truckVarianceNotes" placeholder="Planned vs actual variance..." style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px;"></textarea>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" id="truckSignoffBtn" style="margin-top: 0.75rem;" onclick="signoffTruck()">Get Driver Signature</button>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" id="truckRevertBtn" onclick="revertTruckOffloadingStep()" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">↶ Revert Step</button>
+                    <button class="btn btn-primary" id="truckAdvanceBtn" onclick="advanceTruckOffloadingStep()" style="flex: 1;">✓ Advance Step</button>
+                    <button class="btn" id="truckCompleteBtn" onclick="completeTruckOffloading()" style="flex: 1; background: #28a745; color: white; border: none;">Complete</button>
+                </div>
+                <div id="truckCompleteHint" style="margin-top: 0.5rem; color: #856404; font-size: 0.85rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="truckPhotoUploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2300; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 95%;">
+            <h2 style="color: #0f1d3d; margin: 0 0 1rem 0;">📷 Upload Truck Media</h2>
+            <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 2rem; text-align: center; background: #f8f9ff; margin-bottom: 1.5rem;">
+                <input type="file" id="truckPhotoFileInput" multiple accept="image/*,video/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('truckPhotoFileInput').click()" class="btn btn-secondary">Select Files</button>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closeTruckPhotoModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                <button onclick="uploadTruckPhotos()" class="btn btn-primary" style="flex: 1;">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="backloadTruckModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2400; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 style="color: #0f1d3d; margin: 0; font-size: 1.5rem;">Register Backload Truck</h2>
+                <button onclick="closeBackloadTruckModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">✕</button>
+            </div>
+            <form id="backloadTruckForm" onsubmit="submitBackloadTruck(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Truck Registration *</label>
+                        <input type="text" id="backloadTruckRegistration" placeholder="e.g., ABC-123-GP" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Horse Registration (Optional)</label>
+                        <input type="text" id="backloadHorseRegistration" placeholder="Horse/tractor unit registration" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Driver Name *</label>
+                        <input type="text" id="backloadDriverName" placeholder="Driver full name" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Driver License (Optional)</label>
+                        <input type="text" id="backloadDriverLicense" placeholder="Driver license number" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Transporter Name *</label>
+                        <input type="text" id="backloadTransporterName" placeholder="Transport company" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Client *</label>
+                        <select id="backloadClient" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;"></select>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Cargo Type *</label>
+                        <input type="text" id="backloadCargoType" placeholder="e.g., Steel products" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Delivery Destination *</label>
+                        <input type="text" id="backloadDeliveryDestination" placeholder="Where is this cargo going?" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Cargo Description *</label>
+                        <textarea id="backloadCargoDescription" placeholder="Detailed description of the cargo being loaded" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 90px;"></textarea>
+                    </div>
+                    <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Quantity *</label>
+                            <input type="number" id="backloadQuantity" min="0" step="0.01" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Unit *</label>
+                            <select id="backloadUnit" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                                <option value="Tons">Tons</option>
+                                <option value="Bags">Bags</option>
+                                <option value="Pallets">Pallets</option>
+                                <option value="Boxes">Boxes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: #0f1d3d; font-weight: 600;">Gross Weight (Optional)</label>
+                            <input type="number" id="backloadGrossWeight" min="0" step="0.01" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Delivery Note Number (Optional)</label>
+                        <input type="text" id="backloadDeliveryNote" placeholder="Delivery note reference" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Notes (Optional)</label>
+                        <textarea id="backloadNotes" placeholder="Any additional notes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 70px;"></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; grid-column: 1 / -1;">
+                    <button type="button" onclick="closeBackloadTruckModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Register Truck</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="backloadWorkflowModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2400; overflow-y: auto;">
+        <div style="background: white; margin: 2rem auto; border-radius: 12px; max-width: 1000px; width: 95%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="background: #0f1d3d; color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.4rem;">Backload Packing Workflow</h2>
+                    <p style="margin-top: 0.5rem; opacity: 0.9;">Truck: <span id="backloadWorkflowId">--</span></p>
+                </div>
+                <button onclick="closeBackloadWorkflow()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: white;">✕</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div><strong>Driver:</strong> <span id="backloadWorkflowDriver">--</span></div>
+                    <div><strong>Client:</strong> <span id="backloadWorkflowClient">--</span></div>
+                    <div><strong>Current Step:</strong> <span id="backloadWorkflowStep">--</span></div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Before Packing Photos</div>
+                        <div id="backloadBeforeCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openBackloadPhotoModal('BEFORE_PHOTOS')">Open Camera</button>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">Packing Photos</div>
+                        <div id="backloadPackingCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openBackloadPhotoModal('PACKING_PHOTOS')">Open Camera</button>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">After Packing Photos</div>
+                        <div id="backloadAfterCount">0/2</div>
+                        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="openBackloadPhotoModal('AFTER_PHOTOS')">Open Camera</button>
+                    </div>
+                </div>
+                <div style="background: #f9fafc; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #0f1d3d;">Cargo Manifest & Weights</h3>
+                    <div style="display: grid; grid-template-columns: 1.4fr 0.6fr 0.6fr 0.6fr; gap: 0.75rem;">
+                        <input type="text" id="backloadItemDescription" placeholder="Description" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <input type="number" id="backloadItemQuantity" placeholder="Qty" min="0" step="0.01" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <input type="text" id="backloadItemUnit" placeholder="Unit" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <input type="number" id="backloadItemWeight" placeholder="Weight kg" min="0" step="0.01" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="addBackloadManifestItem()">Add Item</button>
+                    <div id="backloadManifestItems" style="margin-top: 1rem;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <label style="font-weight: 600;">Total Cargo Weight (kg)</label>
+                            <input type="number" id="backloadTotalWeight" min="0" step="0.01" placeholder="Total weight" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600;">Transfer Order Number (Optional)</label>
+                            <input type="text" id="backloadTransferOrder" placeholder="Transfer order number" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="backloadProceedBtn" style="margin-top: 0.75rem;" onclick="saveBackloadManifest()">Proceed to Packing Photos</button>
+                </div>
+                <div style="background: #f9fafc; border-radius: 10px; padding: 1rem;">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #0f1d3d;">Driver Signature & Completion</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div>
+                            <label style="font-weight: 600;">Driver Signature</label>
+                            <input type="text" id="backloadSignoffName" placeholder="Driver full name" style="width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" id="backloadSignoffBtn" style="margin-top: 0.75rem;" onclick="signoffBackloadTruck()">Get Driver Signature</button>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" id="backloadRevertBtn" onclick="revertBackloadStep()" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">↶ Revert Step</button>
+                    <button class="btn btn-primary" id="backloadAdvanceBtn" onclick="advanceBackloadStep()" style="flex: 1;">✓ Advance Step</button>
+                    <button class="btn" id="backloadCompleteBtn" onclick="completeBackloadTruck()" style="flex: 1; background: #28a745; color: white; border: none;">Complete & Finish</button>
+                </div>
+                <div class="blocked-badge" id="backloadCompleteHint"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="backloadPhotoUploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2400; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 95%;">
+            <h2 style="color: #0f1d3d; margin: 0 0 1rem 0;">Upload Packing Photos</h2>
+            <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 2rem; text-align: center; background: #f8f9ff; margin-bottom: 1.5rem;">
+                <input type="file" id="backloadPhotoFileInput" multiple accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('backloadPhotoFileInput').click()" class="btn btn-secondary">Select Photos</button>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closeBackloadPhotoModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                <button onclick="uploadBackloadPhotos()" class="btn btn-primary" style="flex: 1;">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/core.js?v=20260216.1"></script>
+    <script src="/static/js/ui.js?v=20260216.1"></script>
+    <script src="/static/js/containers.js?v=20260216.1"></script>
+    <script src="/static/js/truck_offloading.js?v=20260216.1"></script>
+    <script src="/static/js/backload_truck.js?v=20260216.1"></script>
+    <script src="/static/js/tab_loader.js?v=20260216.1"></script>
+    <script src="/static/js/transnet.js?v=20260216.1"></script>
+    <script src="/static/js/vessel_bookings.js?v=20260216.1"></script>
+    <script src="/static/js/operational_incidents.js?v=20260216.1"></script>
+
+    <script>
+        window.openNewContainerModal = window.openNewContainerModal || function() {
+            const modal = document.getElementById('newContainerModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                if (typeof loadBookingsForClient === 'function') {
+                    loadBookingsForClient();
+                }
+            }
+        };
+
+        window.showRegisterFCLForm = window.showRegisterFCLForm || function() {
+            const modal = document.getElementById('fclContainerModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                if (typeof loadFCLBookings === 'function') {
+                    loadFCLBookings();
+                }
+            }
+        };
+
+        window.closeNewContainerModal = window.closeNewContainerModal || function() {
+            document.getElementById('newContainerModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+
+        window.closeFCLModal = window.closeFCLModal || function() {
+            document.getElementById('fclContainerModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+
+        window.closePhotoModal = window.closePhotoModal || function() {
+            document.getElementById('photoUploadModal').style.display = 'none';
+        };
+
+        window.closeDamageModal = window.closeDamageModal || function() {
+            document.getElementById('damageReportModal').style.display = 'none';
+        };
+
+        window.closeUnpackingWorkflow = window.closeUnpackingWorkflow || function() {
+            document.getElementById('unpackingWorkflowModal').style.display = 'none';
+        };
+
+        window.toggleTruckClientMode = window.toggleTruckClientMode || function(mode) {
+            const select = document.getElementById('truckClientSelect');
+            const manual = document.getElementById('truckClientManual');
+            if (!select || !manual) return;
+            if (mode === 'manual') {
+                select.style.display = 'none';
+                manual.style.display = 'block';
+            } else {
+                select.style.display = 'block';
+                manual.style.display = 'none';
+            }
+        };
+
+        function updateNetworkStatus() {
+            const status = navigator.onLine ? 'Online' : 'Offline';
+            const element = document.getElementById('networkStatus');
+            if (element) {
+                element.textContent = status;
+                element.classList.toggle('online', navigator.onLine);
+                element.classList.toggle('offline', !navigator.onLine);
+            }
+        }
+
+        function logout() {
+            if (confirm('Logout?')) window.location.href = '/login';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.TabLoader) {
+                await TabLoader.loadTab('manager_overview');
+                await TabLoader.switchTab('manager_overview');
+                TabLoader.preloadTabs([
+                    'export_packing',
+                    'import_unpacking',
+                    'export_truck',
+                    'truck_unpacking',
+                    'damage',
+                    'downtime',
+                    'export_analytics',
+                    'truck_planning',
+                    'container_planning',
+                    'export_clients',
+                    'import_clients',
+                    'client_portal',
+                    'billing_settings'
+                ]);
+            }
+
+            if (window.APP && typeof APP.loadUserProfile === 'function') {
+                APP.loadUserProfile();
+            }
+
+            updateNetworkStatus();
+            setInterval(updateNetworkStatus, 5000);
+        });
+    </script>
+</body>
+</html>

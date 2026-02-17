@@ -1,0 +1,50 @@
+<!-- Transnet Dashboard Tab -->
+<div id="transnet_dashboard" class="tab-panel">
+    <div class="tab-header" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h2 style="margin: 0;">Transnet Dashboard</h2>
+            <p style="margin: 0.35rem 0 0; color: #6b7280;">Live terminal updates with vessel and stack schedules.</p>
+        </div>
+        <span id="transnetIngestBadge" style="padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #eef2ff; color: #3730a3;">Last ingest: -</span>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 1.5rem;">
+        <div class="stat-card">
+            <div class="stat-label">Total Vessels</div>
+            <div class="stat-value" id="transnetTotalVessels">-</div>
+            <div class="stat-subtext">latest schedule</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Stacks Open</div>
+            <div class="stat-value" id="transnetOpenStacks">-</div>
+            <div class="stat-subtext">open windows</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Stacks Closed</div>
+            <div class="stat-value" id="transnetClosedStacks">-</div>
+            <div class="stat-subtext">closed windows</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Last Updated</div>
+            <div class="stat-value" id="transnetLastUpdated">-</div>
+            <div class="stat-subtext">UTC</div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 2rem;">
+        <div class="job-card" style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <input id="transnetSearch" type="text" placeholder="Search vessel or voyage..." style="flex: 1; min-width: 220px; padding: 0.6rem 0.8rem; border-radius: 8px; border: 1px solid #d8dee9;">
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-secondary" onclick="loadTransnetVessels()">Refresh</button>
+                <button class="btn btn-primary" id="transnetScrapeBtn" onclick="runTransnetScrape()">Run Live Scrape</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Vessel Schedule</h3>
+        <div class="job-list" id="transnetVesselList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">Loading vessels...</div>
+        </div>
+    </div>
+</div>

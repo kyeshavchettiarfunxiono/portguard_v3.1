@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: portguard_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-portguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-portguard_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portguard} -d ${POSTGRES_DB:-portguard_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - portguard_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portguard_app
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-portguard}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-portguard_db}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 480
+    volumes:
+      - static_files:/app/static
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portguard_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nginx:
+    image: nginx:alpine
+    container_name: portguard_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_files:/app/static:ro
+      - uploads:/app/uploads:ro
+    depends_on:
+      - app
+    networks:
+      - portguard_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  static_files:
+  uploads:
+
+networks:
+  portguard_network:
+    driver: bridge

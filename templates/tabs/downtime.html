@@ -1,0 +1,41 @@
+<!-- Downtime Report Tab -->
+<div class="tab-content" id="downtime" style="display: none;">
+    <div class="downtime-section">
+        <h2 class="section-title">⏱️ Report Operational Downtime</h2>
+        <form onsubmit="submitDowntimeReport(event)">
+            <div class="downtime-grid">
+                <div class="form-group">
+                    <label>Container ID *</label>
+                    <input type="text" id="downtimeContainerId" placeholder="Select active container" required>
+                </div>
+                <div class="form-group">
+                    <label>Downtime Type *</label>
+                    <select id="downtimeType" required>
+                        <option value="">Select type...</option>
+                        <option value="MECHANICAL">Mechanical Failure</option>
+                        <option value="SYSTEM_FAILURE">System Failure</option>
+                        <option value="WEATHER">Weather Delay</option>
+                        <option value="STAFFING">Staffing Issue</option>
+                        <option value="CUSTOMS_DELAY">Customs Delay</option>
+                        <option value="MANUAL_HOLD">Manual Hold</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Time *</label>
+                    <input type="datetime-local" id="downtimeStart" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="datetime-local" id="downtimeEnd">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label>Reason / Details *</label>
+                <textarea id="downtimeReason" placeholder="Describe the downtime incident..." required></textarea>
+            </div>
+            <button class="btn btn-primary" style="margin-top: 1.5rem;" type="submit">
+                📤 Submit Downtime Report
+            </button>
+        </form>
+    </div>
+</div>

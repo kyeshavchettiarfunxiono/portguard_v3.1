@@ -1,0 +1,121 @@
+<!-- Vessel Bookings Tab -->
+<div id="vessel_bookings" class="tab-panel">
+    <div class="tab-header" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h2 style="margin: 0;">Vessel Bookings</h2>
+            <p style="margin: 0.35rem 0 0; color: #6b7280;">Approve Transnet vessels or create bookings manually.</p>
+        </div>
+        <span id="vesselBookingPendingCount" style="padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #fffaeb; color: #b54708;">Pending: -</span>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 1.25rem;">
+        <div class="stat-card">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="vesselBookingPendingStat">-</div>
+            <div class="stat-subtext">awaiting approval</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value" id="vesselBookingApprovedStat">-</div>
+            <div class="stat-subtext">bookings created</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Declined</div>
+            <div class="stat-value" id="vesselBookingDeclinedStat">-</div>
+            <div class="stat-subtext">requires review</div>
+        </div>
+    </div>
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <div class="job-card" style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="font-weight: 600;">Transnet Approval Queue</div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-secondary" onclick="loadVesselBookings()">Refresh</button>
+                <button class="btn btn-primary" id="newBookingBtn">New Booking</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1rem;">
+        <div class="job-card" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <input id="vesselBookingSearch" type="text" class="form-input" placeholder="Search vessel, voyage, terminal..." style="flex: 1; min-width: 220px; background: #0f1d3d; color: #e2e8f0; border: 1px solid #2a3c66;">
+            <select id="vesselBookingStatusFilter" class="form-input" style="min-width: 200px; background: #0f1d3d; color: #e2e8f0; border: 1px solid #2a3c66;">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="declined">Declined</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Pending Approvals</h3>
+        <div class="job-list" id="vesselBookingList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">Loading approvals...</div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Approved</h3>
+        <div class="job-list" id="vesselBookingApprovedList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">No approved vessels</div>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Declined</h3>
+        <div class="job-list" id="vesselBookingDeclinedList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">No declined vessels</div>
+        </div>
+    </div>
+
+    <div id="bookingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2400; align-items: center; justify-content: center;">
+        <form id="bookingForm" style="background: white; border-radius: 12px; padding: 2rem; width: min(800px, 92vw); max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="bookingModalTitle" style="color: #0f1d3d; margin: 0; font-size: 1.5rem;">Create Booking</h2>
+                <button type="button" onclick="closeBookingModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">x</button>
+            </div>
+
+            <input type="hidden" id="bookingQueueId" />
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                    <label style="color: #0f1d3d; font-weight: 600;">Vessel Name *</label>
+                    <input id="bookingVesselName" type="text" placeholder="Vessel name" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                </div>
+                <div class="form-group">
+                    <label style="color: #0f1d3d; font-weight: 600;">Voyage Number</label>
+                    <input id="bookingVoyage" type="text" placeholder="Voyage" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                </div>
+                <div class="form-group">
+                    <label style="color: #0f1d3d; font-weight: 600;">Booking Reference *</label>
+                    <input id="bookingReference" type="text" placeholder="Reference" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                </div>
+                <div class="form-group">
+                    <label style="color: #0f1d3d; font-weight: 600;">Client *</label>
+                    <select id="bookingClient" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                        <option value="">Select client</option>
+                        <option value="PG_BISON">PG Bison</option>
+                        <option value="HULAMIN">Hulamin</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label style="color: #0f1d3d; font-weight: 600;">Container Type *</label>
+                    <select id="bookingContainerType" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                        <option value="">Select type</option>
+                        <option value="20ft">20ft Standard</option>
+                        <option value="40ft">40ft Standard</option>
+                        <option value="40ft_HC">40ft High Cube</option>
+                    </select>
+                    <small style="color: #888;">Choose the container type for this booking</small>
+                </div>
+            </div>
+
+            <p id="bookingModalError" class="pg-err is-hidden" style="margin-top: 0.75rem;"></p>
+            <div style="display: flex; gap: 1rem; margin-top: 1.25rem;">
+                <button type="button" onclick="closeBookingModal()" class="btn btn-secondary" style="flex: 1; background: #f0f0f0; color: #333; border: 1px solid #ddd;">Cancel</button>
+                <button class="btn btn-primary" id="bookingSaveBtn" value="save" style="flex: 1;">Save Booking</button>
+            </div>
+        </form>
+    </div>
+</div>
