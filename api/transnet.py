@@ -106,7 +106,7 @@ def live_scrape(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN"}:
+    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     result = run_transnet_ingest(db, terminal_url, run_type="manual")
 
@@ -140,7 +140,7 @@ def list_booking_queue(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN"}:
+    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     query = db.query(TransnetBookingQueue)
@@ -174,7 +174,7 @@ def approve_booking_queue(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN"}:
+    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     item = db.query(TransnetBookingQueue).filter(TransnetBookingQueue.id == queue_id).first()
@@ -199,7 +199,7 @@ def decline_booking_queue(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN"}:
+    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     item = db.query(TransnetBookingQueue).filter(TransnetBookingQueue.id == queue_id).first()
@@ -223,7 +223,7 @@ def requeue_booking_queue(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN"}:
+    if current_user.role not in {"SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     item = db.query(TransnetBookingQueue).filter(TransnetBookingQueue.id == queue_id).first()
