@@ -200,7 +200,7 @@ def operator_dashboard(
 ):
     """Display the operational dashboard for tally clerks and team leaders."""
     # Check if user has operator-level access
-    if current_user.role not in ["OPERATOR", "SUPERVISOR", "ADMIN"]:
+    if current_user.role not in ["OPERATOR", "SUPERVISOR", "ADMIN", "SUPERUSER"]:
         raise HTTPException(status_code=403, detail="Access Denied")
     
     return templates.TemplateResponse("operator_dashboard.html", {
@@ -217,7 +217,7 @@ def supervisor_dashboard(
     current_user = Depends(get_current_user)
 ):
     """Display the supervisor audit dashboard (requires supervisor access)."""
-    if current_user.role not in ["SUPERVISOR", "ADMIN"]:
+    if current_user.role not in ["SUPERVISOR", "ADMIN", "SUPERUSER"]:
         raise HTTPException(status_code=403, detail="Access Denied")
 
     return templates.TemplateResponse("supervisor_dashboard.html", {
@@ -234,7 +234,7 @@ def admin_dashboard(
     current_user = Depends(get_current_user)
 ):
     """Display the admin dashboard (requires admin access)."""
-    if current_user.role not in ["ADMIN"]:
+    if current_user.role not in ["ADMIN", "SUPERUSER"]:
         raise HTTPException(status_code=403, detail="Access Denied")
 
     return templates.TemplateResponse("admin_dashboard.html", {
@@ -251,7 +251,7 @@ def manager_dashboard(
     current_user = Depends(get_current_user)
 ):
     """Display the manager dashboard (requires manager access)."""
-    if current_user.role not in ["MANAGER", "ADMIN"]:
+    if current_user.role not in ["MANAGER", "ADMIN", "SUPERUSER"]:
         raise HTTPException(status_code=403, detail="Access Denied")
 
     return templates.TemplateResponse("manager_dashboard.html", {
