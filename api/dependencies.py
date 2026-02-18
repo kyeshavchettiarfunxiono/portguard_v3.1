@@ -19,6 +19,6 @@ class RoleChecker:
         return user
 
 # Define reusable dependencies
-require_admin = RoleChecker(["ADMIN"])
-require_supervisor = RoleChecker(["SUPERVISOR", "ADMIN"])
-require_management = RoleChecker(["ADMIN", "SUPERVISOR", "MANAGEMENT", "MANAGER"])
+require_admin = RoleChecker(["ADMIN", "SUPERUSER"])
+require_supervisor = RoleChecker(["SUPERVISOR", "ADMIN", "SUPERUSER"])
+require_management = RoleChecker(["ADMIN", "SUPERVISOR", "MANAGEMENT", "MANAGER", "SUPERUSER"])
