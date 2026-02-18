@@ -59,10 +59,12 @@ class TransnetPDFParser:
     def parse_pdf_from_bytes(self, pdf_bytes: BytesIO, use_ocr: bool = False) -> List[TransnetVesselData]:
         vessels: List[TransnetVesselData] = []
         try:
-            if OCR_AVAILABLE:
-                self.logger.info("Starting Transnet PDF OCR parse")
+            if PDFPLUMBER_AVAILABLE or OCR_AVAILABLE:
+                self.logger.info("Starting Transnet PDF parse")
                 pdf_bytes.seek(0)
                 vessels = self._parse_with_ocr(pdf_bytes)
+            else:
+                self.logger.warning("No PDF parsing backend available (pdfplumber/OCR missing).")
             return vessels
         except Exception as exc:
             self.logger.error("Failed to parse PDF: %s", exc, exc_info=True)

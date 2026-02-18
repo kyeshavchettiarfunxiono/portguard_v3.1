@@ -272,13 +272,18 @@ function updateDashboardStats(containers) {
         completed: containers.filter(c => c.status === 'COMPLETED').length
     };
 
-    document.getElementById('statTotal').textContent = stats.total;
-    document.getElementById('statPending').textContent = stats.pending;
-    document.getElementById('statRepairs').textContent = stats.repairs;
-    document.getElementById('statActive').textContent = stats.active || '-';
-    document.getElementById('countNew').textContent = stats.new;
-    document.getElementById('countReady').textContent = stats.ready;
-    document.getElementById('countCompleted').textContent = stats.completed;
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value);
+    };
+
+    setText('statTotal', stats.total);
+    setText('statPending', stats.pending);
+    setText('statRepairs', stats.repairs);
+    setText('statActive', stats.active || '-');
+    setText('countNew', stats.new);
+    setText('countReady', stats.ready);
+    setText('countCompleted', stats.completed);
 }
 
 function displayActiveJob(containers) {
@@ -290,10 +295,15 @@ function displayActiveJob(containers) {
     if (!card) return;
 
     if (activeContainer) {
-        document.getElementById('activeJobId').textContent = activeContainer.container_no;
-        document.getElementById('activeJobType').textContent = activeContainer.type || 'Unknown';
-        document.getElementById('activeJobStatus').textContent = activeContainer.status.replace('_', ' ');
-        document.getElementById('activeJobStarted').textContent = APP.formatDate(activeContainer.created_at);
+        const activeJobId = document.getElementById('activeJobId');
+        const activeJobType = document.getElementById('activeJobType');
+        const activeJobStatus = document.getElementById('activeJobStatus');
+        const activeJobStarted = document.getElementById('activeJobStarted');
+
+        if (activeJobId) activeJobId.textContent = activeContainer.container_no;
+        if (activeJobType) activeJobType.textContent = activeContainer.type || 'Unknown';
+        if (activeJobStatus) activeJobStatus.textContent = activeContainer.status.replace('_', ' ');
+        if (activeJobStarted) activeJobStarted.textContent = APP.formatDate(activeContainer.created_at);
     }
 }
 
