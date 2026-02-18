@@ -81,15 +81,41 @@ async function loadTransnetVessels() {
 
 async function runTransnetScrape() {
     const button = document.getElementById('transnetScrapeBtn');
-    if (button) button.disabled = true;
-
-    const response = await APP.apiCall('/transnet/live-scrape', { method: 'POST' });
-    if (response?.ok) {
-        await loadTransnetStats();
-        await loadTransnetVessels();
+    if (button) {
+        button.disabled = true;
+        button.dataset.originalText = button.textContent || 'Run Live Scrape';
+        button.textContent = 'Scraping...';
     }
 
-    if (button) button.disabled = false;
+    try {
+        const response = await APP.apiCall('/transnet/live-scrape', { method: 'POST' });
+        const payload = response ? await response.json() : null;
+
+        if (response?.ok) {
+            await loadTransnetStats();
+            await loadTransnetVessels();
+
+            const msg = payload?.message || 'Live scrape completed.';
+            if (payload?.status === 'success') {
+                alert(`✅ ${msg}`);
+            } else if (payload?.status === 'warning') {
+                alert(`⚠️ ${msg}`);
+            } else {
+                alert(msg);
+            }
+        } else {
+            const detail = payload?.detail || payload?.message || 'Live scrape failed.';
+            alert(`❌ ${detail}`);
+        }
+    } catch (error) {
+        console.error('Transnet live scrape failed:', error);
+        alert('❌ Live scrape failed. Check server logs.');
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = button.dataset.originalText || 'Run Live Scrape';
+        }
+    }
 }
 
 function attachTransnetHandlers() {
