@@ -245,8 +245,18 @@ function attachBookingHandlers() {
             });
 
             if (!createResponse?.ok) {
+                let detail = 'Failed to create booking.';
+                try {
+                    const payload = await createResponse.json();
+                    if (payload?.detail) {
+                        detail = payload.detail;
+                    }
+                } catch (_err) {
+                    detail = 'Failed to create booking. Please try again.';
+                }
+
                 if (error) {
-                    error.textContent = 'Failed to create booking. Check the reference.';
+                    error.textContent = detail;
                     error.classList.remove('is-hidden');
                 }
                 return;
