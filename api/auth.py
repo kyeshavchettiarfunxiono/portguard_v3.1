@@ -23,6 +23,13 @@ def register_user(
     db: Session = Depends(get_db)
 ):
     """Register a new user account."""
+    requested_role = str(user_in.role).strip().upper()
+    if requested_role in {"ADMIN", "SUPERUSER"}:
+        raise HTTPException(
+            status_code=403,
+            detail="Privileged roles cannot be self-registered. Contact an administrator."
+        )
+    user_in.role = requested_role
     return AuthService.register_user(user_in, db)
 
 

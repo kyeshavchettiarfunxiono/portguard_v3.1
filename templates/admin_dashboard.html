@@ -763,14 +763,14 @@
         </div>
     </div>
 
-    <script src="/static/js/core.js?v=20260218.2"></script>
-    <script src="/static/js/ui.js?v=20260218.2"></script>
+    <script src="/static/js/core.js?v=20260218.3"></script>
+    <script src="/static/js/ui.js?v=20260218.3"></script>
     <script src="/static/js/containers.js?v=20260216.1"></script>
     <script src="/static/js/truck_offloading.js?v=20260216.1"></script>
     <script src="/static/js/backload_truck.js?v=20260216.1"></script>
-    <script src="/static/js/tab_loader.js?v=20260218.2"></script>
+    <script src="/static/js/tab_loader.js?v=20260218.3"></script>
     <script src="/static/js/transnet.js?v=20260216.1"></script>
-    <script src="/static/js/vessel_bookings.js?v=20260218.2"></script>
+    <script src="/static/js/vessel_bookings.js?v=20260218.3"></script>
     <script src="/static/js/operational_incidents.js?v=20260216.1"></script>
 
     <script>
@@ -812,6 +812,13 @@
             const response = await APP.apiCall('/admin/users');
             if (!response?.ok) return;
             const users = await response.json();
+
+            let me = null;
+            const meResponse = await APP.apiCall('/auth/me');
+            if (meResponse?.ok) {
+                me = await meResponse.json();
+            }
+
             const list = document.getElementById('adminUserList');
             if (!list) return;
 
@@ -820,7 +827,13 @@
                 return;
             }
 
-            list.innerHTML = users.map(user => `
+            list.innerHTML = users.map(user => {
+                const isSelf = me && user.id === me.id;
+                const isTargetSuperuser = user.role === 'SUPERUSER';
+                const isCurrentSuperuser = me && me.role === 'SUPERUSER';
+                const canManageTarget = !isTargetSuperuser || isCurrentSuperuser;
+
+                return `
                 <div class="job-card">
                     <div class="job-header">
                         <div class="job-id">${user.username}</div>
@@ -833,18 +846,20 @@
                     <div class="job-details" style="grid-template-columns: 1fr auto auto; align-items: center; margin-top: 0.8rem;">
                         <div class="job-detail">
                             <span class="job-label">Role</span>
-                            <select id="role-${user.id}" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ccd6e0;">
+                            <select id="role-${user.id}" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ccd6e0;" ${canManageTarget ? '' : 'disabled'}>
                                 <option value="OPERATOR" ${user.role === 'OPERATOR' ? 'selected' : ''}>OPERATOR</option>
                                 <option value="SUPERVISOR" ${user.role === 'SUPERVISOR' ? 'selected' : ''}>SUPERVISOR</option>
                                 <option value="MANAGER" ${user.role === 'MANAGER' ? 'selected' : ''}>MANAGER</option>
                                 <option value="ADMIN" ${user.role === 'ADMIN' ? 'selected' : ''}>ADMIN</option>
+                                <option value="SUPERUSER" ${user.role === 'SUPERUSER' ? 'selected' : ''}>SUPERUSER</option>
                             </select>
                         </div>
-                        <button class="logout-btn" style="height: 40px;" onclick="saveUserRole('${user.id}')">Save</button>
-                        <button class="logout-btn" style="height: 40px; background: #b93c3c;" onclick="deactivateUser('${user.id}')">Deactivate</button>
+                        <button class="logout-btn" style="height: 40px;" onclick="saveUserRole('${user.id}')" ${canManageTarget ? '' : 'disabled'}>Save</button>
+                        <button class="logout-btn" style="height: 40px; background: #b93c3c;" onclick="deactivateUser('${user.id}')" ${(isSelf || !canManageTarget) ? 'disabled' : ''}>Deactivate</button>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         async function loadDowntimeRate() {
@@ -885,9 +900,21 @@
                 method: 'PUT',
                 body: JSON.stringify({ role })
             });
+            if (!response) {
+                alert('Failed to save user role. Network error.');
+                return;
+            }
             if (response?.ok) {
                 await loadAdminUsers();
+                return;
             }
+
+            let detail = 'Failed to save user role.';
+            try {
+                const payload = await response.json();
+                if (payload?.detail) detail = payload.detail;
+            } catch (_err) {}
+            alert(detail);
         }
 
         async function deactivateUser(userId) {
@@ -897,9 +924,21 @@
             const response = await APP.apiCall(`/admin/users/${userId}/deactivate`, {
                 method: 'POST'
             });
+            if (!response) {
+                alert('Failed to deactivate user. Network error.');
+                return;
+            }
             if (response?.ok) {
                 await loadAdminUsers();
+                return;
             }
+
+            let detail = 'Failed to deactivate user.';
+            try {
+                const payload = await response.json();
+                if (payload?.detail) detail = payload.detail;
+            } catch (_err) {}
+            alert(detail);
         }
 
         function attachAdminRevenueFilter() {

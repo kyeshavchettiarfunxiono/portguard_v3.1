@@ -21,6 +21,7 @@ from services.auth_service import AuthService
 from services.config_service import get_downtime_hourly_rate, set_downtime_hourly_rate
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+ALLOWED_ROLES = {"OPERATOR", "SUPERVISOR", "MANAGER", "ADMIN", "SUPERUSER"}
 
 
 class AdminUserUpdate(BaseModel):
@@ -39,21 +40,50 @@ def list_users(db: Session = Depends(get_db)):
 
 
 @router.post("/users", response_model=UserResponse)
-def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     """Create a new staff user."""
+    requested_role = str(payload.role).strip().upper()
+    if requested_role not in ALLOWED_ROLES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+    if requested_role == "SUPERUSER" and str(current_user.role) != "SUPERUSER":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only SUPERUSER can create SUPERUSER accounts")
+
+    payload.role = requested_role
     return AuthService.register_user(payload, db)
 
 
 @router.put("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: UUID, payload: AdminUserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: UUID,
+    payload: AdminUserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     """Update an existing user (role/active state)."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    current_role = str(current_user.role)
+    target_role = str(user.role)
+
+    if target_role == "SUPERUSER" and current_role != "SUPERUSER":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only SUPERUSER can manage SUPERUSER accounts")
+
     if payload.role is not None:
-        user.role = payload.role  # type: ignore[assignment]
+        normalized_role = str(payload.role).strip().upper()
+        if normalized_role not in ALLOWED_ROLES:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+        if normalized_role == "SUPERUSER" and current_role != "SUPERUSER":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only SUPERUSER can assign SUPERUSER role")
+        user.role = normalized_role  # type: ignore[assignment]
     if payload.is_active is not None:
+        if str(user.id) == str(current_user.id) and payload.is_active is False:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot deactivate your own account")
         user.is_active = payload.is_active  # type: ignore[assignment]
 
     db.commit()
@@ -62,11 +92,22 @@ def update_user(user_id: UUID, payload: AdminUserUpdate, db: Session = Depends(g
 
 
 @router.post("/users/{user_id}/deactivate", response_model=UserResponse)
-def deactivate_user(user_id: UUID, db: Session = Depends(get_db)):
+def deactivate_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     """Deactivate a user account."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if str(user.id) == str(current_user.id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot deactivate your own account")
+
+    if str(user.role) == "SUPERUSER" and str(current_user.role) != "SUPERUSER":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only SUPERUSER can deactivate SUPERUSER accounts")
+
     user.is_active = False  # type: ignore[assignment]
     db.commit()
     db.refresh(user)

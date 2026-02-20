@@ -253,7 +253,7 @@
                         <select id="role" name="role" required>
                             <option value="OPERATOR">Operator</option>
                             <option value="SUPERVISOR">Supervisor</option>
-                            <option value="ADMIN">Admin</option>
+                            <option value="MANAGER">Manager</option>
                         </select>
                     </div>
 
@@ -286,11 +286,14 @@
         }
 
         function getRedirectPath(role) {
-            if (role === 'ADMIN') {
+            if (role === 'ADMIN' || role === 'SUPERUSER') {
                 return '/admin-dashboard';
             }
             if (role === 'SUPERVISOR') {
                 return '/supervisor-dashboard';
+            }
+            if (role === 'MANAGER') {
+                return '/manager-dashboard';
             }
             if (role === 'OPERATOR') {
                 return '/operator-dashboard';

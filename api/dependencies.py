@@ -8,8 +8,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: User = Depends(get_current_user)) -> User:
-        # Handle both Enum and String roles safely
-        user_role = str(user.role.value) if hasattr(user.role, 'value') else str(user.role)
+        user_role = str(user.role)
         
         if user_role not in self.allowed_roles:
             raise HTTPException(
