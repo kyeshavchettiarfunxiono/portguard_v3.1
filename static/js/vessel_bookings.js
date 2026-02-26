@@ -13,14 +13,24 @@ async function loadBookingClients(bookingType) {
     if (!clientSelect) return;
 
     clientSelect.innerHTML = '<option value="">Loading clients...</option>';
-    const response = await APP.apiCall(`/bookings/client-options?booking_type=${encodeURIComponent(bookingType)}`);
-    if (!response?.ok) {
-        clientSelect.innerHTML = '<option value="">Select client</option>';
-        return;
-    }
+    let clients = [];
 
-    const payload = await response.json();
-    const clients = Array.isArray(payload.clients) ? payload.clients : [];
+    const response = await APP.apiCall(`/bookings/client-options?booking_type=${encodeURIComponent(bookingType)}`);
+    if (response?.ok) {
+        const payload = await response.json();
+        clients = Array.isArray(payload.clients) ? payload.clients : [];
+    } else {
+        const fallbackResponse = await APP.apiCall(`/bookings/?booking_type=${encodeURIComponent(bookingType)}`);
+        if (fallbackResponse?.ok) {
+            const bookings = await fallbackResponse.json();
+            const bookingList = Array.isArray(bookings) ? bookings : [];
+            clients = Array.from(new Set(
+                bookingList
+                    .map((item) => String(item?.client || '').trim())
+                    .filter(Boolean)
+            ));
+        }
+    }
 
     clientSelect.innerHTML = '<option value="">Select client</option>';
     clients.forEach((client) => {
