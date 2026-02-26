@@ -71,7 +71,27 @@ class UnpackingService:
         if current_index >= len(steps) - 1:
             session.is_complete = True  # type: ignore
         else:
-            session.current_step = UnpackingStep[steps[current_index + 1]]  # type: ignore
+            next_step_value = steps[current_index + 1]
+
+            cargo_completed_at = getattr(session, 'cargo_unloading_completed_at', None)
+            if current_step_val == 'CARGO_UNLOADING' and cargo_completed_at is None:
+                completed_at = datetime.utcnow()
+                session.cargo_unloading_completed_at = completed_at  # type: ignore[assignment]
+                cargo_started_at = getattr(session, 'cargo_unloading_started_at', None)
+                if cargo_started_at is not None:
+                    elapsed_minutes = max(
+                        0,
+                        int((completed_at - cargo_started_at).total_seconds() // 60)
+                    )
+                    session.cargo_unloading_duration_minutes = elapsed_minutes  # type: ignore[assignment]
+
+            session.current_step = UnpackingStep[next_step_value]  # type: ignore
+
+            cargo_started_at = getattr(session, 'cargo_unloading_started_at', None)
+            if next_step_value == 'CARGO_UNLOADING' and cargo_started_at is None:
+                session.cargo_unloading_started_at = datetime.utcnow()  # type: ignore[assignment]
+                session.cargo_unloading_completed_at = None  # type: ignore[assignment]
+                session.cargo_unloading_duration_minutes = None  # type: ignore[assignment]
         
         db.commit()
         db.refresh(session)
@@ -116,6 +136,32 @@ class UnpackingService:
             raise HTTPException(status_code=404, detail="Unpacking session not found")
         
         session.cargo_items_count = py_cast(int, (session.cargo_items_count or 0) + 1)  # type: ignore
+        db.commit()
+        db.refresh(session)
+        return session
+
+    @staticmethod
+    def document_manifest(
+        container_id: UUID,
+        document_reference: Optional[str],
+        manifest_notes: Optional[str],
+        inspector_id: UUID,
+        db: Session
+    ) -> UnpackingSession:
+        """Mark cargo manifest as documented with optional reference/notes."""
+        session = db.query(UnpackingSession).filter(
+            UnpackingSession.container_id == container_id
+        ).first()
+
+        if not session:
+            raise HTTPException(status_code=404, detail="Unpacking session not found")
+
+        session.manifest_document_reference = (document_reference or None)  # type: ignore
+        session.manifest_notes = (manifest_notes or None)  # type: ignore
+        session.manifest_complete = True  # type: ignore
+        session.manifest_documented_at = datetime.utcnow()  # type: ignore
+        session.manifest_documented_by = inspector_id  # type: ignore
+
         db.commit()
         db.refresh(session)
         return session
@@ -221,6 +267,9 @@ class UnpackingService:
             session.interior_inspection_photos = 0  # type: ignore
         elif session.current_step.value == 'CARGO_UNLOADING':
             session.cargo_unloading_photos = 0  # type: ignore
+            session.cargo_unloading_started_at = None  # type: ignore[assignment]
+            session.cargo_unloading_completed_at = None  # type: ignore[assignment]
+            session.cargo_unloading_duration_minutes = None  # type: ignore[assignment]
         
         previous_step = UnpackingStep[steps[current_index - 1]]
         session.current_step = previous_step  # type: ignore

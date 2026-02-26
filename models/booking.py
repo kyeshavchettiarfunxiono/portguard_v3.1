@@ -4,7 +4,7 @@
 # v3.0.0.0 
 # Docker Configured & new project directory has been created for this version on github at the following link: 
 
-from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy import Column, String, DateTime, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -15,9 +15,15 @@ class Booking(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     booking_reference = Column(String, unique=True, nullable=False)
+    booking_type = Column(String, nullable=False, default="EXPORT")
     client = Column(String, nullable=False)
     vessel_name = Column(String, nullable=False)
+    voyage_number = Column(String, nullable=True)
+    arrival_voyage = Column(String, nullable=True)
+    date_in_depot = Column(DateTime(timezone=True), nullable=True)
     container_type = Column(String, nullable=False)
+    category = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationship to containers

@@ -48,6 +48,15 @@ class UnpackingSession(Base):
     # Cargo manifest
     cargo_items_count = Column(Integer, default=0)
     manifest_complete = Column(Boolean, default=False)
+    manifest_document_reference = Column(String(160), nullable=True)
+    manifest_notes = Column(String(2000), nullable=True)
+    manifest_documented_at = Column(DateTime, nullable=True)
+    manifest_documented_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+
+    # Cargo unloading timing
+    cargo_unloading_started_at = Column(DateTime, nullable=True)
+    cargo_unloading_completed_at = Column(DateTime, nullable=True)
+    cargo_unloading_duration_minutes = Column(Integer, nullable=True)
     
     # Final inspection notes
     final_notes = Column(String(2000), nullable=True)
@@ -61,17 +70,17 @@ class UnpackingSession(Base):
     
     # Relationships
     container = relationship("Container", back_populates="unpacking_session")
-    inspector = relationship("User")
+    inspector = relationship("User", foreign_keys=[inspector_id])
     
     def get_required_photos(self, step: Optional[str] = None) -> dict:
         """Get required photo counts per step. Standard: 2-3 photos per step."""
         photo_requirements = {
-            'EXTERIOR_INSPECTION': 3,      # Exterior condition from multiple angles
-            'DOOR_OPENING': 2,             # Door condition and seal
-            'INTERIOR_INSPECTION': 3,      # Interior condition from multiple angles
-            'CARGO_UNLOADING': 2,          # Loading/unloading process
-            'CARGO_MANIFEST': 1,           # Manifest document
-            'FINAL_INSPECTION': 2          # Final state
+            'EXTERIOR_INSPECTION': 1,      # Basic exterior record
+            'DOOR_OPENING': 1,             # Mandatory seal/door evidence before unpacking
+            'INTERIOR_INSPECTION': 2,      # Cargo state before unloading
+            'CARGO_UNLOADING': 2,          # Cargo evidence during unloading
+            'CARGO_MANIFEST': 1,           # Manifest documentation + cargo lines required
+            'FINAL_INSPECTION': 0          # Final photos not mandatory
         }
         
         if step:
@@ -107,6 +116,8 @@ class UnpackingSession(Base):
         current_step_val = py_cast(str, self.current_step.value if hasattr(self.current_step, 'value') else str(self.current_step))
         cargo_count = py_cast(int, self.cargo_items_count or 0)
         if current_step_val == 'CARGO_MANIFEST' and cargo_count == 0:
+            return False
+        if current_step_val == 'CARGO_MANIFEST' and not bool(self.manifest_documented_at):
             return False
         
         return True

@@ -64,13 +64,11 @@ async function submitTruckOffloading(event) {
             : document.getElementById('truckClientSelect').value,
         delivery_note_number: document.getElementById('truckDeliveryNote').value.trim(),
         commodity_type: document.getElementById('truckCommodityType').value.trim(),
-        quantity: parseFloat(document.getElementById('truckQuantity').value || '0'),
-        unit: document.getElementById('truckUnit').value,
         horse_registration: document.getElementById('truckHorseRegistration').value.trim() || null,
         notes: document.getElementById('truckNotes').value.trim() || null
     };
 
-    if (!payload.truck_registration || !payload.driver_name || !payload.transporter_name || !payload.client || !payload.delivery_note_number || !payload.commodity_type || !payload.quantity || !payload.unit) {
+    if (!payload.truck_registration || !payload.driver_name || !payload.transporter_name || !payload.client || !payload.delivery_note_number || !payload.commodity_type) {
         APP.showError('Please fill in all required fields');
         return;
     }
@@ -89,6 +87,7 @@ async function submitTruckOffloading(event) {
             const result = await response.json();
             APP.showSuccess(`Truck ${result.truck_registration} registered`);
             closeTruckOffloadingModal();
+            await startTruckOffloading(result.id);
             loadTruckOffloadingData();
         } else {
             const error = await response.json();
@@ -187,7 +186,9 @@ async function loadTruckOffloadingDetails(truckId) {
     document.getElementById('truckWorkflowClient').textContent = truck.client;
     document.getElementById('truckWorkflowStep').textContent = formatTruckStep(truck.current_step);
     document.getElementById('truckArrivalCount').textContent = `${truck.arrival_photos}/2`;
-    document.getElementById('truckDamageCount').textContent = `${truck.damage_photos}/1`;
+    document.getElementById('truckDamageCount').textContent = truck.damage_reported
+        ? `${truck.damage_photos}/1`
+        : `${truck.damage_photos}/optional`;
     document.getElementById('truckOffloadingCount').textContent = `${truck.offloading_photos}/2`;
     document.getElementById('truckCompletionCount').textContent = `${truck.completion_photos}/2`;
 
@@ -215,9 +216,16 @@ async function loadTruckOffloadingDetails(truckId) {
 
     const assessmentStatus = document.getElementById('truckDamageAssessmentStatus');
     if (assessmentStatus) {
-        assessmentStatus.textContent = truck.damage_assessment_completed ? 'Completed' : 'Pending';
-        assessmentStatus.style.color = truck.damage_assessment_completed ? '#28a745' : '#d9534f';
+        if (!truck.damage_reported) {
+            assessmentStatus.textContent = 'Not Required';
+            assessmentStatus.style.color = '#666';
+        } else {
+            assessmentStatus.textContent = truck.damage_assessment_completed ? 'Completed' : 'Pending';
+            assessmentStatus.style.color = truck.damage_assessment_completed ? '#28a745' : '#d9534f';
+        }
     }
+
+    renderTruckOffloadingItems(truck.items || []);
 
     updateTruckWorkflowControls(truck);
     return truck;
@@ -228,9 +236,9 @@ function canAdvanceTruckStep(truck) {
         case 'ARRIVAL_PHOTOS':
             return (truck.arrival_photos || 0) >= 2;
         case 'DAMAGE_ASSESSMENT':
-            return Boolean(truck.damage_assessment_completed);
+            return !truck.damage_reported || Boolean(truck.damage_assessment_completed);
         case 'OFFLOADING_PHOTOS':
-            return (truck.offloading_photos || 0) >= 2;
+            return (truck.offloading_photos || 0) >= 2 && (truck.items || []).length > 0;
         case 'COMPLETION_PHOTOS':
             return (truck.completion_photos || 0) >= 2;
         case 'DRIVER_SIGNOFF':
@@ -252,16 +260,89 @@ function updateTruckWorkflowControls(truck) {
 
     if (advanceBtn) advanceBtn.disabled = !canAdvance;
     if (signoffBtn) signoffBtn.disabled = !isSignoffStep;
-    if (completeBtn) completeBtn.disabled = !(isSignoffStep && hasSignoff);
+    if (completeBtn) completeBtn.disabled = false;
 
     if (hint) {
-        if (!isSignoffStep) {
-            hint.textContent = 'Complete only after driver sign-off step.';
+        if (!canAdvance && truck.current_step === 'ARRIVAL_PHOTOS') {
+            hint.textContent = 'Add 2 arrival photos to advance.';
+        } else if (!canAdvance && truck.current_step === 'DAMAGE_ASSESSMENT' && truck.damage_reported) {
+            hint.textContent = 'Complete damage acknowledgement or skip damage if none was reported.';
+        } else if (!canAdvance && truck.current_step === 'OFFLOADING_PHOTOS') {
+            hint.textContent = (truck.items || []).length === 0
+                ? 'Add at least 1 offloaded item (description, quantity, weight) and 2 photos to advance.'
+                : 'Add 2 offloading photos to advance.';
+        } else if (!canAdvance && truck.current_step === 'COMPLETION_PHOTOS') {
+            hint.textContent = 'Add 2 completion photos to advance.';
+        } else if (!isSignoffStep) {
+            hint.textContent = 'Click Advance Step or Complete to continue to driver sign-off.';
         } else if (!hasSignoff) {
             hint.textContent = 'Capture driver signature to enable completion.';
         } else {
             hint.textContent = '';
         }
+    }
+}
+
+function renderTruckOffloadingItems(items) {
+    const container = document.getElementById('truckOffloadedItems');
+    if (!container) return;
+
+    if (!items.length) {
+        container.innerHTML = '<div style="text-align: center; color: #888; padding: 0.75rem;">No offloaded items captured yet</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid #e0e0e0;">
+                    <th style="padding: 0.4rem;">Description</th>
+                    <th style="padding: 0.4rem;">Qty</th>
+                    <th style="padding: 0.4rem;">Weight (kg)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                        <td style="padding: 0.4rem;">${item.description}</td>
+                        <td style="padding: 0.4rem;">${item.quantity}</td>
+                        <td style="padding: 0.4rem;">${item.weight_kg}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+async function addTruckOffloadingItem() {
+    if (!currentTruckOffloadingId) return;
+    const description = document.getElementById('truckOffloadItemDescription').value.trim();
+    const quantityValue = document.getElementById('truckOffloadItemQuantity').value;
+    const weightValue = document.getElementById('truckOffloadItemWeight').value;
+
+    if (!description || !quantityValue || !weightValue) {
+        APP.showError('Enter item description, quantity, and weight');
+        return;
+    }
+
+    const response = await APP.apiCall(`/truck-offloading/${currentTruckOffloadingId}/offloading-items`, {
+        method: 'POST',
+        body: JSON.stringify({
+            description,
+            quantity: parseFloat(quantityValue),
+            weight_kg: parseFloat(weightValue)
+        })
+    });
+
+    if (response?.ok) {
+        APP.showSuccess('Offloading item added');
+        document.getElementById('truckOffloadItemDescription').value = '';
+        document.getElementById('truckOffloadItemQuantity').value = '';
+        document.getElementById('truckOffloadItemWeight').value = '';
+        await loadTruckOffloadingDetails(currentTruckOffloadingId);
+    } else {
+        const error = await response.json();
+        APP.showError(error.detail || 'Failed to add offloading item');
     }
 }
 
@@ -422,22 +503,54 @@ async function signoffTruck() {
 
 async function completeTruckOffloading() {
     if (!currentTruckOffloadingId) return;
-    const truck = await loadTruckOffloadingDetails(currentTruckOffloadingId);
+    let truck = await loadTruckOffloadingDetails(currentTruckOffloadingId);
     if (!truck) return;
 
-    if (truck.current_step !== 'DRIVER_SIGNOFF') {
-        if (canAdvanceTruckStep(truck)) {
-            await advanceTruckOffloadingStep();
-            APP.showError('Advance to Driver Signoff before completing.');
-        } else {
-            APP.showError('Complete only after driver sign-off step.');
+    while (truck.current_step !== 'DRIVER_SIGNOFF' && canAdvanceTruckStep(truck)) {
+        const advanceResponse = await APP.apiCall(`/truck-offloading/${currentTruckOffloadingId}/advance-step`, { method: 'POST' });
+        if (!advanceResponse?.ok) {
+            const advanceError = await advanceResponse.json();
+            APP.showError(advanceError.detail || 'Cannot advance to driver sign-off step.');
+            return;
         }
+        truck = await loadTruckOffloadingDetails(currentTruckOffloadingId);
+        if (!truck) return;
+    }
+
+    if (truck.current_step !== 'DRIVER_SIGNOFF') {
+        APP.showError('Complete the current step requirements before final completion.');
         return;
     }
 
     if (!truck.signoff_name) {
-        APP.showError('Capture driver signature to complete.');
-        return;
+        const name = document.getElementById('truckFinalSignoffName')?.value?.trim() || '';
+        if (!name) {
+            APP.showError('Capture driver signature to complete.');
+            return;
+        }
+
+        const actualQuantityValue = document.getElementById('truckActualQuantity')?.value;
+        const varianceNotes = document.getElementById('truckVarianceNotes')?.value?.trim() || '';
+        const signoffResponse = await APP.apiCall(`/truck-offloading/${currentTruckOffloadingId}/signoff`, {
+            method: 'POST',
+            body: JSON.stringify({
+                driver_name: name,
+                actual_quantity: actualQuantityValue ? parseFloat(actualQuantityValue) : null,
+                variance_notes: varianceNotes || null
+            })
+        });
+
+        if (!signoffResponse?.ok) {
+            const signoffError = await signoffResponse.json();
+            APP.showError(signoffError.detail || 'Failed to capture driver sign-off.');
+            return;
+        }
+
+        truck = await loadTruckOffloadingDetails(currentTruckOffloadingId);
+        if (!truck?.signoff_name) {
+            APP.showError('Driver sign-off is required to complete.');
+            return;
+        }
     }
 
     const response = await APP.apiCall(`/truck-offloading/${currentTruckOffloadingId}/complete`, { method: 'POST' });
@@ -468,3 +581,4 @@ window.completeTruckDamageAssessment = completeTruckDamageAssessment;
 window.signoffTruck = signoffTruck;
 window.completeTruckOffloading = completeTruckOffloading;
 window.toggleTruckClientMode = toggleTruckClientMode;
+window.addTruckOffloadingItem = addTruckOffloadingItem;

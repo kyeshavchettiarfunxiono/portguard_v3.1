@@ -184,6 +184,14 @@ const TabLoader = {
                     window.loadAdminUsers();
                 }
                 break;
+            case 'audit_logs':
+                if (typeof window.attachAuditLogHandlers === 'function') {
+                    window.attachAuditLogHandlers();
+                }
+                if (typeof window.loadAuditLogs === 'function') {
+                    window.loadAuditLogs();
+                }
+                break;
             case 'transnet_dashboard':
                 if (typeof window.loadTransnetStats === 'function') {
                     window.loadTransnetStats();
@@ -193,6 +201,25 @@ const TabLoader = {
                 }
                 if (typeof window.loadTransnetVessels === 'function') {
                     window.loadTransnetVessels();
+                }
+                break;
+            case 'truck_planning':
+                if (typeof window.loadTruckPlanBookings === 'function') {
+                    window.loadTruckPlanBookings();
+                }
+                if (typeof window.attachTruckPlanningHandlers === 'function') {
+                    window.attachTruckPlanningHandlers();
+                }
+                if (typeof window.loadTruckPlans === 'function') {
+                    window.loadTruckPlans();
+                }
+                break;
+            case 'container_planning':
+                if (typeof window.attachContainerPlanningHandlers === 'function') {
+                    window.attachContainerPlanningHandlers();
+                }
+                if (typeof window.loadContainerPlanningBoard === 'function') {
+                    window.loadContainerPlanningBoard();
                 }
                 break;
             case 'vessel_bookings':

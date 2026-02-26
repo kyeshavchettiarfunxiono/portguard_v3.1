@@ -33,6 +33,29 @@ def map_booking_container_type(raw: str) -> ContainerType:
     return ContainerType.FORTY_FT
 
 
+def get_or_create_damage_holding_booking(db: Session) -> Booking:
+    existing = db.query(Booking).filter(Booking.booking_reference == "DAMAGE_HOLDING").first()
+    if existing:
+        return existing
+
+    booking = Booking(
+        booking_reference="DAMAGE_HOLDING",
+        booking_type="EXPORT",
+        client="DAMAGE_HOLD",
+        vessel_name="NO_VESSEL",
+        voyage_number=None,
+        arrival_voyage=None,
+        date_in_depot=None,
+        container_type="40FT",
+        category=None,
+        notes="System-generated holding booking for damaged grounded containers",
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+
 def resolve_container(
     container_id: Optional[str],
     container_no: Optional[str],
@@ -51,13 +74,14 @@ def resolve_container(
     if existing:
         return existing, False
 
-    if not booking_id:
-        raise HTTPException(status_code=400, detail="Booking selection is required for new containers")
-
-    booking_uuid = uuid.UUID(booking_id)
-    booking = db.query(Booking).filter(Booking.id == booking_uuid).first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
+    booking = None
+    if booking_id:
+        booking_uuid = uuid.UUID(booking_id)
+        booking = db.query(Booking).filter(Booking.id == booking_uuid).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+    else:
+        booking = get_or_create_damage_holding_booking(db)
 
     container_type = map_booking_container_type(str(booking.container_type))
     payload = ContainerCreate(
@@ -71,7 +95,11 @@ def resolve_container(
         notes=None,
         cargo_type=None,
         arrival_date=None,
-        unpacking_location=None
+        unpacking_location=None,
+        manifest_vessel_name=None,
+        manifest_voyage_number=None,
+        depot_list_fcl_count=None,
+        depot_list_grp_count=None,
     )
     container = ContainerService.create_container(payload, user_id, db)
     return container, True

@@ -1,13 +1,14 @@
 """
 Service layer for packing workflow management.
 """
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from typing import cast as py_cast
 from fastapi import HTTPException
 
-from models.packing import PackingSession, PackingStep
+from models.packing import PackingSession, PackingStep, ContainerConditionStatus
 from models.container import Container, ContainerStatus
 from schemas.packing import PackingSessionResponse
 
@@ -87,6 +88,36 @@ class PackingService:
         
         container_type = PackingService._get_container_type_value(container)
         return session.can_move_to_next_step(container_type)
+
+    @staticmethod
+    def submit_condition_report(
+        container_id: UUID,
+        condition_status: ContainerConditionStatus,
+        condition_notes: Optional[str],
+        user_id: UUID,
+        db: Session
+    ) -> PackingSession:
+        """Capture mandatory pre-packing condition report for export operations."""
+        session = PackingService.get_or_create_packing_session(container_id, db)
+        container = db.query(Container).filter(Container.id == container_id).first()
+
+        if not container:
+            raise HTTPException(status_code=404, detail="Container not found")
+
+        session.condition_report_completed = True  # type: ignore
+        session.condition_status = condition_status  # type: ignore
+        session.condition_notes = condition_notes  # type: ignore
+        session.condition_reported_at = datetime.utcnow()  # type: ignore
+        session.condition_reported_by = user_id  # type: ignore
+
+        if condition_status == ContainerConditionStatus.UNSUITABLE:
+            container.needs_repair = True  # type: ignore
+            if condition_notes:
+                container.repair_notes = f"Pre-packing condition: {condition_notes}"  # type: ignore
+
+        db.commit()
+        db.refresh(session)
+        return session
     
     @staticmethod
     def advance_step(container_id: UUID, db: Session) -> PackingSession:
@@ -102,6 +133,19 @@ class PackingService:
         if not session.can_move_to_next_step(container_type):
             current_step = py_cast(PackingStep, session.current_step)
             step_name = current_step.value
+            condition_status = py_cast(Optional[ContainerConditionStatus], getattr(session, 'condition_status', None))
+
+            if step_name == 'BEFORE_PACKING' and not bool(session.condition_report_completed):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Submit the pre-packing condition report before advancing."
+                )
+            if step_name == 'BEFORE_PACKING' and condition_status != ContainerConditionStatus.SUITABLE:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Container marked UNSUITABLE in condition report. Resolve/report damage before continuing."
+                )
+
             required = session.get_required_photos(container_type)
             required_count = required.get(step_name, 1)
             
@@ -143,6 +187,7 @@ class PackingService:
         
         container_type = PackingService._get_container_type_value(container)
         current_step = py_cast(PackingStep, session.current_step)
+        condition_status = py_cast(Optional[ContainerConditionStatus], getattr(session, 'condition_status', None))
         
         if current_step != PackingStep.SEALING:
             raise HTTPException(
@@ -210,6 +255,7 @@ class PackingService:
         
         current_count = photo_map.get(step_name, 0)
         is_complete = session.is_step_complete(container_type)
+        condition_status = py_cast(Optional[ContainerConditionStatus], getattr(session, 'condition_status', None))
         
         # Calculate overall progress (4 steps total)
         steps = ['BEFORE_PACKING', 'CARGO_PHOTOS', 'AFTER_PACKING', 'SEALING']
@@ -228,7 +274,10 @@ class PackingService:
             'before_packing_photos': session.before_packing_photos or 0,
             'cargo_photos': session.cargo_photos or 0,
             'after_packing_photos': session.after_packing_photos or 0,
-            'seal_photo_count': session.seal_photo_count or 0
+            'seal_photo_count': session.seal_photo_count or 0,
+            'condition_report_completed': bool(session.condition_report_completed),
+            'condition_status': condition_status.value if condition_status is not None else None,
+            'condition_notes': session.condition_notes
         }
 
     @staticmethod

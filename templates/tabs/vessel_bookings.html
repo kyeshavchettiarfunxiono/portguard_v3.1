@@ -79,6 +79,13 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                 <div class="form-group">
+                    <label style="color: #0f1d3d; font-weight: 600;">Booking Type *</label>
+                    <select id="bookingType" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
+                        <option value="EXPORT">Export</option>
+                        <option value="IMPORT">Import</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label style="color: #0f1d3d; font-weight: 600;">Vessel Name *</label>
                     <input id="bookingVesselName" type="text" placeholder="Vessel name" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
                 </div>
@@ -94,10 +101,15 @@
                     <label style="color: #0f1d3d; font-weight: 600;">Client *</label>
                     <select id="bookingClient" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;" required>
                         <option value="">Select client</option>
-                        <option value="PG_BISON">PG Bison</option>
-                        <option value="HULAMIN">Hulamin</option>
-                        <option value="OTHER">Other</option>
                     </select>
+                </div>
+                <div class="form-group import-only-field" id="bookingArrivalVoyageGroup" style="display: none;">
+                    <label style="color: #0f1d3d; font-weight: 600;">Arrival Voyage</label>
+                    <input id="bookingArrivalVoyage" type="text" placeholder="Arrival voyage" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                </div>
+                <div class="form-group import-only-field" id="bookingDateInDepotGroup" style="display: none;">
+                    <label style="color: #0f1d3d; font-weight: 600;">Date in Depot (SACD)</label>
+                    <input id="bookingDateInDepot" type="datetime-local" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
                 </div>
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label style="color: #0f1d3d; font-weight: 600;">Container Type *</label>
@@ -108,6 +120,18 @@
                         <option value="40ft_HC">40ft High Cube</option>
                     </select>
                     <small style="color: #888;">Choose the container type for this booking</small>
+                </div>
+                <div class="form-group import-only-field" id="bookingCategoryGroup" style="display: none;">
+                    <label style="color: #0f1d3d; font-weight: 600;">Category (Import)</label>
+                    <select id="bookingCategory" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <option value="">Select category</option>
+                        <option value="FCL">FCL</option>
+                        <option value="GRP">Groupage (GRP)</option>
+                    </select>
+                </div>
+                <div class="form-group import-only-field" id="bookingNotesGroup" style="display: none; grid-column: 1 / -1;">
+                    <label style="color: #0f1d3d; font-weight: 600;">Notes</label>
+                    <textarea id="bookingNotes" placeholder="Notes" style="width: 100%; min-height: 90px; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;"></textarea>
                 </div>
             </div>
 

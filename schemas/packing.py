@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from models.packing import PackingStep
+from models.packing import PackingStep, ContainerConditionStatus
 
 
 class PackingSessionBase(BaseModel):
@@ -31,6 +31,13 @@ class PackingSessionResponse(PackingSessionBase):
     seal_number: Optional[str] = None
     gross_mass: Optional[str] = None
     tare_weight: Optional[str] = None
+
+    # Condition report
+    condition_report_completed: bool = False
+    condition_status: Optional[ContainerConditionStatus] = None
+    condition_notes: Optional[str] = None
+    condition_reported_at: Optional[datetime] = None
+    condition_reported_by: Optional[UUID] = None
     
     # Timestamps
     started_at: datetime
@@ -56,3 +63,10 @@ class PhotoUploadRequest(BaseModel):
     container_id: UUID
     step: PackingStep
     photo_count: int = Field(1, ge=1)
+
+
+class ConditionReportRequest(BaseModel):
+    """Request for pre-packing container condition assessment."""
+    container_id: UUID
+    condition_status: ContainerConditionStatus
+    condition_notes: Optional[str] = None

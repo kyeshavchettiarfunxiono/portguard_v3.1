@@ -8,10 +8,18 @@
                 <p style="color: #888; margin-top: 0.5rem;">Document FCL import container unpacking process from exterior inspection to cargo manifest</p>
             </div>
             <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="openImportBookingFlow()">
+                    🛳️ Create/Select IMPORT Booking (FCL/GRP)
+                </button>
                 <button class="btn btn-primary" onclick="showRegisterFCLForm()">
                     ➕ Register FCL Container
                 </button>
             </div>
+        </div>
+
+        <div class="job-card" style="margin-bottom: 1rem; border-left: 4px solid #0f1d3d;">
+            <div style="font-weight: 600; color: #0f1d3d; margin-bottom: 0.35rem;">Import flow order</div>
+            <div style="color: #555;">1) Create/select an <strong>IMPORT</strong> booking (FCL/GRP), 2) Register FCL container with manifest vessel/voyage + depot list counts, 3) Start unpacking workflow.</div>
         </div>
 
         <div id="unpackingSuccessBanner" class="unpacking-banner" style="display: none;">

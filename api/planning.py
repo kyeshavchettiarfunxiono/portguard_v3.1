@@ -1,144 +1,152 @@
-# Software Engineer: Kyeshav Chettiar 
-# Company FXO - Adcorp 
-# Configured and pushed onto the virtual machine for testing and evaluation for team members to use within the companies rules and regulations 
-# v3.0.0.0 
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from typing import List
 from uuid import UUID
-from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from api.dependencies import require_admin, require_management
 from core.database import get_db
-from core.security import get_current_user
-from models.user import User
+from models.booking import Booking
 from models.plan import Plan, PlanStatus
-from schemas.plan import PlanCreate, PlanUpdate, PlanResponse
+from models.user import User
+from schemas.plan import PlanCreate, PlanResponse, PlanUpdate
 
 router = APIRouter(prefix="/plans", tags=["planning"])
 
 
+def _serialize_plan(plan: Plan) -> dict:
+    status_value = plan.status.value if hasattr(plan.status, "value") else str(plan.status)
+    return {
+        "id": plan.id,
+        "booking_id": plan.booking_id,
+        "vessel_name": plan.vessel_name,
+        "planned_quantity": plan.planned_quantity,
+        "planned_date": plan.planned_date,
+        "status": status_value,
+        "created_at": plan.created_at,
+        "created_by": plan.created_by,
+    }
+
+
+@router.get("/", response_model=List[PlanResponse])
+def list_plans(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_management),
+):
+    plans = db.query(Plan).order_by(Plan.planned_date.asc()).all()
+    return [_serialize_plan(plan) for plan in plans]
+
+
 @router.post("/", response_model=PlanResponse)
 def create_plan(
-    plan: PlanCreate,
+    payload: PlanCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_management),
 ):
-    """Create a new plan in DRAFT status."""
-    new_plan = Plan(
-        plan_name=plan.plan_name,
-        plan_type=plan.plan_type,
+    booking = db.query(Booking).filter(Booking.id == payload.booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    plan = Plan(
+        booking_id=payload.booking_id,
+        vessel_name=booking.vessel_name,
+        planned_quantity=payload.planned_quantity,
+        planned_date=payload.planned_date,
         status=PlanStatus.DRAFT,
-        created_by=current_user.id
+        created_by=current_user.id,
     )
-    db.add(new_plan)
+    db.add(plan)
     db.commit()
-    db.refresh(new_plan)
-    return new_plan
+    db.refresh(plan)
+    return _serialize_plan(plan)
 
 
 @router.get("/{plan_id}", response_model=PlanResponse)
 def get_plan(
-    plan_id: str,
-    db: Session = Depends(get_db)
+    plan_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_management),
 ):
-    """Retrieve a plan by ID."""
-    try:
-        plan_uuid = UUID(plan_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Plan UUID format")
-    
-    plan = db.query(Plan).filter(Plan.id == plan_uuid).first()
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    return plan
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+    return _serialize_plan(plan)
 
 
 @router.put("/{plan_id}", response_model=PlanResponse)
 def update_plan(
-    plan_id: str,
-    plan_update: PlanUpdate,
+    plan_id: UUID,
+    payload: PlanUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_management),
 ):
-    """Update a plan (only in DRAFT status)."""
-    try:
-        plan_uuid = UUID(plan_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Plan UUID format")
-    
-    plan = db.query(Plan).filter(Plan.id == plan_uuid).first()
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    
-    plan_status = plan.status.value if hasattr(plan.status, 'value') else str(plan.status)
-    if plan_status != PlanStatus.DRAFT.value:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    current_status = plan.status.value if hasattr(plan.status, "value") else str(plan.status)
+    if current_status not in {PlanStatus.DRAFT.value, PlanStatus.LOCKED.value}:
         raise HTTPException(
-            status_code=400,
-            detail="Can only edit plans in DRAFT status"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only DRAFT/LOCKED plans can be updated",
         )
-    
-    if plan_update.plan_name:
-        plan.plan_name = plan_update.plan_name
-    
-    plan.modified_by = current_user.id
+
+    if payload.planned_quantity is not None:
+        setattr(plan, "planned_quantity", payload.planned_quantity)
+    if payload.planned_date is not None:
+        setattr(plan, "planned_date", payload.planned_date)
+    if payload.status is not None:
+        normalized_status = payload.status.strip().upper()
+        allowed_status = {item.value for item in PlanStatus}
+        if normalized_status not in allowed_status:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+        setattr(plan, "status", normalized_status)
+
     db.commit()
     db.refresh(plan)
-    return plan
-
-
-@router.delete("/{plan_id}")
-def delete_plan(
-    plan_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a plan (only in DRAFT status)."""
-    try:
-        plan_uuid = UUID(plan_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Plan UUID format")
-    
-    plan = db.query(Plan).filter(Plan.id == plan_uuid).first()
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    
-    plan_status = plan.status.value if hasattr(plan.status, 'value') else str(plan.status)
-    if plan_status != PlanStatus.DRAFT.value:
-        raise HTTPException(
-            status_code=400,
-            detail="Can only delete plans in DRAFT status"
-        )
-    
-    db.delete(plan)
-    db.commit()
-    return {"message": "Plan deleted successfully"}
+    return _serialize_plan(plan)
 
 
 @router.post("/{plan_id}/finalize")
 def finalize_plan(
-    plan_id: str,
+    plan_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_management),
 ):
-    """Lock plan for execution (DRAFT → LOCKED)."""
-    try:
-        plan_uuid = UUID(plan_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Plan UUID format")
-    
-    plan = db.query(Plan).filter(Plan.id == plan_uuid).first()
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    
-    plan_status = plan.status.value if hasattr(plan.status, 'value') else str(plan.status)
-    if plan_status != PlanStatus.DRAFT.value:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    current_status = plan.status.value if hasattr(plan.status, "value") else str(plan.status)
+    if current_status != PlanStatus.DRAFT.value:
         raise HTTPException(
-            status_code=400,
-            detail="Can only finalize plans in DRAFT status"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only DRAFT plans can be finalized",
         )
-    
-    plan.status = PlanStatus.LOCKED.value  # type: ignore
-    plan.is_locked = True
-    plan.modified_by = current_user.id
+
+    setattr(plan, "status", PlanStatus.LOCKED.value)
     db.commit()
-    return {"status": "LOCKED", "message": "Plan finalized"}
+    db.refresh(plan)
+    return {"status": "LOCKED", "message": "Truck plan finalized", "plan": _serialize_plan(plan)}
+
+
+@router.delete("/{plan_id}")
+def delete_plan(
+    plan_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    current_status = plan.status.value if hasattr(plan.status, "value") else str(plan.status)
+    if current_status != PlanStatus.DRAFT.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only DRAFT plans can be deleted",
+        )
+
+    db.delete(plan)
+    db.commit()
+    return {"message": "Plan deleted successfully"}

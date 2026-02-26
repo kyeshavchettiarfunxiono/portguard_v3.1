@@ -8,15 +8,19 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models.truck_offloading import TruckOffloading, TruckOffloadingStatus, TruckOffloadingStep
-from schemas.truck_offloading import TruckOffloadingCreate
+from models.truck_offloading import TruckOffloading, TruckOffloadingStatus, TruckOffloadingStep, TruckOffloadingItem
+from schemas.truck_offloading import TruckOffloadingCreate, TruckOffloadingItemCreate
 
 
 class TruckOffloadingService:
     @staticmethod
     def create_truck_offloading(data: TruckOffloadingCreate, db: Session, user_id: Optional[UUID]) -> TruckOffloading:
+        payload = data.model_dump()
+        payload["quantity"] = data.quantity if data.quantity is not None else 0.0
+        payload["unit"] = data.unit if data.unit else "Units"
+
         truck = TruckOffloading(
-            **data.model_dump(),
+            **payload,
             status=TruckOffloadingStatus.REGISTERED,
             current_step=TruckOffloadingStep.ARRIVAL_PHOTOS,
             created_by=user_id,
@@ -65,13 +69,16 @@ class TruckOffloadingService:
         return truck
 
     @staticmethod
-    def can_advance(truck: TruckOffloading) -> bool:
+    def can_advance(truck: TruckOffloading, db: Session) -> bool:
         if truck.current_step == TruckOffloadingStep.ARRIVAL_PHOTOS:
             return (truck.arrival_photos or 0) >= 2
         if truck.current_step == TruckOffloadingStep.DAMAGE_ASSESSMENT:
+            if not truck.damage_reported:
+                return True
             return bool(truck.damage_assessment_completed)
         if truck.current_step == TruckOffloadingStep.OFFLOADING_PHOTOS:
-            return (truck.offloading_photos or 0) >= 2
+            item_count = db.query(TruckOffloadingItem).filter(TruckOffloadingItem.truck_id == truck.id).count()
+            return (truck.offloading_photos or 0) >= 2 and item_count > 0
         if truck.current_step == TruckOffloadingStep.COMPLETION_PHOTOS:
             return (truck.completion_photos or 0) >= 2
         if truck.current_step == TruckOffloadingStep.DRIVER_SIGNOFF:
@@ -80,7 +87,11 @@ class TruckOffloadingService:
 
     @staticmethod
     def advance_step(truck: TruckOffloading, db: Session) -> TruckOffloading:
-        if not TruckOffloadingService.can_advance(truck):
+        if not TruckOffloadingService.can_advance(truck, db):
+            if truck.current_step == TruckOffloadingStep.OFFLOADING_PHOTOS:
+                item_count = db.query(TruckOffloadingItem).filter(TruckOffloadingItem.truck_id == truck.id).count()
+                if item_count <= 0:
+                    raise HTTPException(status_code=400, detail="Add at least one offloading item before advancing")
             raise HTTPException(status_code=400, detail="Current step is not complete")
 
         steps = [
@@ -96,6 +107,19 @@ class TruckOffloadingService:
             db.commit()
             db.refresh(truck)
         return truck
+
+    @staticmethod
+    def add_offloading_item(truck: TruckOffloading, data: TruckOffloadingItemCreate, db: Session) -> TruckOffloadingItem:
+        item = TruckOffloadingItem(
+            truck_id=truck.id,
+            description=data.description,
+            quantity=data.quantity,
+            weight_kg=data.weight_kg,
+        )
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        return item
 
     @staticmethod
     def revert_step(truck: TruckOffloading, db: Session) -> TruckOffloading:

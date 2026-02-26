@@ -382,6 +382,34 @@ function switchUnpackingStep(step) {
     loadUnpackingStepForm(step);
     if (currentUnpackingSession.progress) {
         updateUnpackingPhotoCounts(currentUnpackingSession.progress);
+        updateUnloadingDurationDisplay(currentUnpackingSession.progress);
+    }
+}
+
+function updateUnloadingDurationDisplay(progress) {
+    const durationField = document.getElementById('unloadingDurationMinutes');
+    const badge = document.getElementById('unloadingTimerBadge');
+
+    if (!durationField) return;
+
+    const minutes = progress?.cargo_unloading_duration_minutes;
+    if (minutes === null || minutes === undefined) {
+        durationField.value = 'In progress / not completed yet';
+        if (badge) {
+            const startedAt = progress?.cargo_unloading_started_at;
+            badge.textContent = startedAt
+                ? `Unloading started: ${new Date(startedAt).toLocaleString()}`
+                : 'Unloading timer starts automatically when you enter this step';
+        }
+        return;
+    }
+
+    durationField.value = String(minutes);
+    if (badge) {
+        const completedAt = progress?.cargo_unloading_completed_at;
+        badge.textContent = completedAt
+            ? `Unloading completed: ${new Date(completedAt).toLocaleString()} (${minutes} min)`
+            : `Unloading completed (${minutes} min)`;
     }
 }
 
@@ -434,9 +462,10 @@ function loadUnpackingStepForm(step) {
             <textarea id="doorObservations" placeholder="Any observations during door opening..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 100px; margin-bottom: 1rem;"></textarea>
         </div>
         <button class="btn btn-secondary" onclick="openPhotoModalForStep('DOOR_OPENING')" style="width: 100%;">
-            📸 Upload Door Photos
+            📸 Upload Seal + Door Photos
         </button>
         <div id="doorPhotoCount" style="color: #666;">Photos: 0</div>
+        <small style="color: #666; display: block; margin-top: 0.45rem;">At least one clear seal photo is required before continuing.</small>
     </div>
         `,
         'INTERIOR_INSPECTION': `
@@ -488,8 +517,9 @@ function loadUnpackingStepForm(step) {
             <input type="number" id="unitsUnloaded" min="0" placeholder="Number of units..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; margin-bottom: 1rem;">
         </div>
         <div class="form-group">
-            <label style="color: #0f1d3d; font-weight: 600;">Estimated Time Remaining (minutes)</label>
-            <input type="number" id="timeRemaining" min="0" placeholder="Minutes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; margin-bottom: 1rem;">
+            <label style="color: #0f1d3d; font-weight: 600;">Auto Calculated Unloading Duration (minutes)</label>
+            <input type="text" id="unloadingDurationMinutes" readonly placeholder="Calculated automatically from start to completion" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; margin-bottom: 1rem; background: #f7f7f7;">
+            <div id="unloadingTimerBadge" class="blocked-badge" style="display: inline-flex; margin-bottom: 0.8rem;">Unloading timer starts automatically when you enter this step</div>
         </div>
         <div class="form-group">
             <label style="color: #0f1d3d; font-weight: 600;">Unloading Notes</label>
@@ -499,6 +529,7 @@ function loadUnpackingStepForm(step) {
             📸 Upload Unloading Photos
         </button>
         <div id="unloadingPhotoCount" style="color: #666;">Photos: 0</div>
+        <small style="color: #666; display: block; margin-top: 0.45rem;">Minimum 2 photos required (you can upload more) to capture cargo during unpacking.</small>
     </div>
         `,
         'CARGO_MANIFEST': `
@@ -506,6 +537,16 @@ function loadUnpackingStepForm(step) {
         <h3 class="unpacking-header">📋 Cargo Manifest & Inventory</h3>
         <div class="unpacking-card" style="background: #e7f3ff; border-color: #cfe3ff;">
             <strong>Add cargo items below as they are verified during unloading</strong>
+        </div>
+
+        <div class="form-group">
+            <label style="color: #0f1d3d; font-weight: 600;">Manifest / Depot List Reference</label>
+            <input type="text" id="manifestDocumentReference" placeholder="e.g., MB-2025-001" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; margin-bottom: 1rem;">
+        </div>
+
+        <div class="form-group">
+            <label style="color: #0f1d3d; font-weight: 600;">Manifest Notes</label>
+            <textarea id="manifestDocumentNotes" placeholder="Summary of import manifest/depot list notes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px; margin-bottom: 1rem;"></textarea>
         </div>
         
         <div class="form-group">
@@ -545,12 +586,11 @@ function loadUnpackingStepForm(step) {
             <textarea id="cargoNotes" placeholder="Item-specific notes..." style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; min-height: 80px; margin-bottom: 1rem;"></textarea>
         </div>
 
-        <button class="btn btn-secondary" onclick="openPhotoModalForStep('CARGO_MANIFEST')" style="width: 100%;">
-            📸 Upload Manifest Photo
-        </button>
-        <div id="manifestPhotoCount" style="color: #666;">Manifest items/photos: 0</div>
+        <div id="manifestPhotoCount" style="color: #666;">Manifest items: 0</div>
 
         <button class="btn btn-primary" onclick="addCargoItem()" style="width: 100%;">➕ Add Item to Manifest</button>
+        <button class="btn btn-secondary" onclick="documentManifestDetails()" style="width: 100%; margin-top: 0.75rem;">📝 Save Manifest Documentation</button>
+        <small id="manifestCompletionStatus" style="color: #666; display: block; margin-top: 0.45rem;">Manifest documentation pending</small>
 
         <h4 style="color: #0f1d3d; margin-top: 1rem;">Added Items:</h4>
         <div id="manifestItemsList" class="unpacking-list">
@@ -763,6 +803,28 @@ function addCargoItem() {
     });
 }
 
+function documentManifestDetails() {
+    if (!currentUnpackingSession.containerId) return;
+    const document_reference = document.getElementById('manifestDocumentReference')?.value?.trim() || null;
+    const manifest_notes = document.getElementById('manifestDocumentNotes')?.value?.trim() || null;
+
+    APP.apiCall(`/unpacking/${currentUnpackingSession.containerId}/manifest-details`, {
+        method: 'POST',
+        body: JSON.stringify({ document_reference, manifest_notes })
+    }).then(async response => {
+        if (response?.ok) {
+            APP.showSuccess('Manifest documentation saved');
+            await loadUnpackingProgress(currentUnpackingSession.containerId);
+        } else {
+            const error = await response.json();
+            APP.showError(error.detail || 'Failed to save manifest documentation');
+        }
+    }).catch(error => {
+        console.error('Error saving manifest documentation:', error);
+        APP.showError('Error saving manifest documentation');
+    });
+}
+
 async function uploadPhotos() {
     if (!currentUnpackingSession.containerId || !currentPhotoStep) return;
     const files = document.getElementById('photoFileInput').files;
@@ -876,12 +938,14 @@ async function submitDamageReport(e) {
             } else {
                 const containerNo = document.getElementById('damageContainerNumber')?.value?.trim()?.toUpperCase();
                 const bookingId = document.getElementById('damageBookingSelect')?.value;
-                if (!containerNo || !bookingId) {
-                    APP.showError('Enter container number and select booking');
+                if (!containerNo) {
+                    APP.showError('Enter container number');
                     return;
                 }
                 formData.append('container_no', containerNo);
-                formData.append('booking_id', bookingId);
+                if (bookingId) {
+                    formData.append('booking_id', bookingId);
+                }
             }
 
             for (const photo of photos) {
@@ -937,7 +1001,7 @@ function setDamageContainerMode(mode, force = false) {
 
     if (existingSelect) existingSelect.required = mode === 'existing';
     if (containerNumber) containerNumber.required = mode === 'new';
-    if (bookingSelect) bookingSelect.required = mode === 'new';
+    if (bookingSelect) bookingSelect.required = false;
 }
 
 async function initializeDamageModal() {
@@ -1137,6 +1201,13 @@ async function deleteDamagePhoto(reportId, photoId) {
 
 async function advanceUnpackingStep() {
     if (!currentUnpackingSession.containerId) return;
+    if (currentUnpackingStep === 'CARGO_MANIFEST') {
+        const progress = currentUnpackingSession.progress || {};
+        if (!progress.manifest_complete || !progress.manifest_documented_at) {
+            APP.showError('Save manifest documentation before advancing.');
+            return;
+        }
+    }
     try {
         const response = await APP.apiCall(`/unpacking/${currentUnpackingSession.containerId}/advance-step`, { method: 'POST' });
         if (response?.ok) {
@@ -1180,7 +1251,23 @@ function updateUnpackingPhotoCounts(progress) {
     if (door) door.textContent = `Photos: ${progress.door_opening_photos}/${progress.door_required}`;
     if (interior) interior.textContent = `Photos: ${progress.interior_inspection_photos}/${progress.interior_required}`;
     if (unloading) unloading.textContent = `Photos: ${progress.cargo_unloading_photos}/${progress.cargo_required}`;
-    if (manifest) manifest.textContent = `Manifest items/photos: ${progress.cargo_items_count || 0}`;
+    if (manifest) manifest.textContent = `Manifest items: ${progress.cargo_items_count || 0}`;
+    const manifestStatus = document.getElementById('manifestCompletionStatus');
+    if (manifestStatus) {
+        manifestStatus.textContent = progress.manifest_complete
+            ? `Manifest documented${progress.manifest_documented_at ? ` at ${new Date(progress.manifest_documented_at).toLocaleString()}` : ''}`
+            : 'Manifest documentation pending';
+    }
+
+    const manifestRef = document.getElementById('manifestDocumentReference');
+    if (manifestRef && progress.manifest_document_reference && !manifestRef.value) {
+        manifestRef.value = progress.manifest_document_reference;
+    }
+
+    const manifestNotes = document.getElementById('manifestDocumentNotes');
+    if (manifestNotes && progress.manifest_notes && !manifestNotes.value) {
+        manifestNotes.value = progress.manifest_notes;
+    }
 }
 
 function renderUnpackingSteps(progress) {
@@ -1200,7 +1287,7 @@ function renderUnpackingSteps(progress) {
         DOOR_OPENING: progress.door_required,
         INTERIOR_INSPECTION: progress.interior_required,
         CARGO_UNLOADING: progress.cargo_required,
-        CARGO_MANIFEST: Math.max(1, progress.cargo_items_count || 0),
+        CARGO_MANIFEST: 1,
         FINAL_INSPECTION: 1
     };
     const countMap = {
@@ -1208,7 +1295,7 @@ function renderUnpackingSteps(progress) {
         DOOR_OPENING: progress.door_opening_photos,
         INTERIOR_INSPECTION: progress.interior_inspection_photos,
         CARGO_UNLOADING: progress.cargo_unloading_photos,
-        CARGO_MANIFEST: progress.cargo_items_count,
+        CARGO_MANIFEST: progress.manifest_complete ? 1 : 0,
         FINAL_INSPECTION: 0
     };
 
@@ -1267,6 +1354,7 @@ window.UI = {
     saveUnpackingProgress,
     completeUnpacking,
     addCargoItem,
+    documentManifestDetails,
     advanceUnpackingStep,
     revertUnpackingStep,
     uploadPhotos,
@@ -1282,3 +1370,4 @@ window.openEditDamageReport = openEditDamageReport;
 window.resolveDamageReport = resolveDamageReport;
 window.reopenDamageReport = reopenDamageReport;
 window.deleteDamagePhoto = deleteDamagePhoto;
+window.documentManifestDetails = documentManifestDetails;

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional, cast as py_cast
+from datetime import datetime
 import os
 import shutil
 from pathlib import Path
@@ -29,6 +30,11 @@ class CargoItemRequest(BaseModel):
     unit: str
     condition: str
     notes: Optional[str] = None
+
+
+class ManifestDetailsRequest(BaseModel):
+    document_reference: Optional[str] = None
+    manifest_notes: Optional[str] = None
 
 
 @router.post("/{container_id}/start", response_model=UnpackingSessionResponse)
@@ -93,6 +99,7 @@ def get_unpacking_progress(
     # Get container type for requirements
     container_type = py_cast(str, container.type.value if hasattr(container.type, 'value') else str(container.type))
     container_no = py_cast(str, container.container_no)
+    requirements = session.get_required_photos()
     
     return UnpackingProgressResponse(
         container_id=container_id,
@@ -104,9 +111,21 @@ def get_unpacking_progress(
         door_opening_photos=py_cast(int, session.door_opening_photos or 0),
         interior_inspection_photos=py_cast(int, session.interior_inspection_photos or 0),
         cargo_unloading_photos=py_cast(int, session.cargo_unloading_photos or 0),
+        exterior_required=py_cast(int, requirements.get('EXTERIOR_INSPECTION', 1)),
+        door_required=py_cast(int, requirements.get('DOOR_OPENING', 1)),
+        interior_required=py_cast(int, requirements.get('INTERIOR_INSPECTION', 2)),
+        cargo_required=py_cast(int, requirements.get('CARGO_UNLOADING', 2)),
+        manifest_required=py_cast(int, requirements.get('CARGO_MANIFEST', 0)),
+        cargo_unloading_started_at=py_cast(Optional[datetime], session.cargo_unloading_started_at),
+        cargo_unloading_completed_at=py_cast(Optional[datetime], session.cargo_unloading_completed_at),
+        cargo_unloading_duration_minutes=py_cast(Optional[int], session.cargo_unloading_duration_minutes),
         damage_reported=py_cast(bool, session.damage_reported),
         damage_description=py_cast(Optional[str], session.damage_description),
         cargo_items_count=py_cast(int, session.cargo_items_count or 0),
+        manifest_complete=py_cast(bool, session.manifest_complete),
+        manifest_document_reference=py_cast(Optional[str], session.manifest_document_reference),
+        manifest_notes=py_cast(Optional[str], session.manifest_notes),
+        manifest_documented_at=py_cast(Optional[datetime], session.manifest_documented_at),
     )
 
 
@@ -216,6 +235,24 @@ def report_damage(
         "message": "Damage reported",
         "damage_reported": session.damage_reported
     }
+
+
+@router.post("/{container_id}/manifest-details", response_model=UnpackingSessionResponse)
+def document_manifest_details(
+    container_id: UUID,
+    payload: ManifestDetailsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Record import manifest header/reference details once cargo lines are captured."""
+    session = UnpackingService.document_manifest(
+        container_id=container_id,
+        document_reference=payload.document_reference,
+        manifest_notes=payload.manifest_notes,
+        inspector_id=py_cast(UUID, current_user.id),
+        db=db,
+    )
+    return session
 
 
 @router.post("/{container_id}/complete", response_model=UnpackingSessionResponse)

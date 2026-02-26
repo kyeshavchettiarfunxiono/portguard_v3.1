@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PortGuard CCMS v3 - Manager Dashboard</title>
-    <link rel="stylesheet" href="/static/css/operator_dashboard.css?v=20260216.1">
+    <link rel="stylesheet" href="/static/css/operator_dashboard.css?v=20260223.2">
 </head>
 <body>
     <aside class="sidebar">
@@ -180,7 +180,19 @@
                     </div>
                     <div class="form-group">
                         <label style="color: #0f1d3d; font-weight: 600;">Vessel Name</label>
-                        <input type="text" id="fclVesselName" placeholder="Auto-populated" readonly style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; background: #f7f7f7;">
+                        <input type="text" id="fclVesselName" name="manifest_vessel_name" placeholder="Enter vessel name from manifest" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Voyage Number (Manifest)</label>
+                        <input type="text" id="fclVoyageNumber" name="manifest_voyage_number" placeholder="Enter voyage number from manifest" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Depot List FCL Count</label>
+                        <input type="number" id="fclDepotListCount" name="depot_list_fcl_count" min="0" placeholder="e.g., 12" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #0f1d3d; font-weight: 600;">Depot List Groupage Count</label>
+                        <input type="number" id="fclDepotGroupageCount" name="depot_list_grp_count" min="0" placeholder="e.g., 8" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
                     </div>
                     <div class="form-group">
                         <label style="color: #0f1d3d; font-weight: 600;">Arrival Date *</label>
@@ -329,7 +341,7 @@
                     <input type="text" id="damageContainerNumber" placeholder="e.g., MSMU4557285" maxlength="11" />
                     <label class="damage-label" style="margin-top: 0.75rem;">Booking *</label>
                     <select id="damageBookingSelect"></select>
-                    <small class="damage-help">New containers require a booking selection for registration.</small>
+                    <small class="damage-help">Booking is optional for new grounded damaged containers.</small>
                 </div>
 
                 <div class="damage-grid">
@@ -428,23 +440,10 @@
                         <label style="color: #0f1d3d; font-weight: 600;">Delivery Note Number *</label>
                         <input type="text" id="truckDeliveryNote" placeholder="Delivery note reference" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
                     </div>
-                    <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
                         <div>
                             <label style="color: #0f1d3d; font-weight: 600;">Commodity Type *</label>
                             <input type="text" id="truckCommodityType" placeholder="e.g., Maize" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
-                        </div>
-                        <div>
-                            <label style="color: #0f1d3d; font-weight: 600;">Quantity *</label>
-                            <input type="number" id="truckQuantity" min="0" step="0.01" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
-                        </div>
-                        <div>
-                            <label style="color: #0f1d3d; font-weight: 600;">Unit *</label>
-                            <select id="truckUnit" required style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px;">
-                                <option value="Tons">Tons</option>
-                                <option value="Bags">Bags</option>
-                                <option value="Pallets">Pallets</option>
-                                <option value="Boxes">Boxes</option>
-                            </select>
                         </div>
                     </div>
                     <div class="form-group">
@@ -502,6 +501,16 @@
                     </div>
                 </div>
                 <div style="background: #f9fafc; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #0f1d3d;">Offloading Process Items</h3>
+                    <div style="display: grid; grid-template-columns: 1.5fr 0.7fr 0.8fr; gap: 0.75rem;">
+                        <input type="text" id="truckOffloadItemDescription" placeholder="Item description" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <input type="number" id="truckOffloadItemQuantity" min="0" step="0.01" placeholder="Qty" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                        <input type="number" id="truckOffloadItemWeight" min="0" step="0.01" placeholder="Weight kg" style="padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    </div>
+                    <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="addTruckOffloadingItem()">Add Offloaded Item</button>
+                    <div id="truckOffloadedItems" style="margin-top: 0.8rem;"></div>
+                </div>
+                <div style="background: #f9fafc; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <h3 style="margin: 0; font-size: 1rem; color: #0f1d3d;">Damage Assessment</h3>
                         <div style="font-size: 0.9rem;">Status: <span id="truckDamageAssessmentStatus">Pending</span></div>
@@ -544,6 +553,7 @@
                         </div>
                     </div>
                     <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="completeTruckDamageAssessment()">Complete Damage Assessment</button>
+                    <small style="display: block; margin-top: 0.55rem; color: #666;">Damage assessment is optional. Use it only when damage is reported.</small>
                 </div>
                 <div style="background: #f9fafc; border-radius: 10px; padding: 1rem;">
                     <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #0f1d3d;">Driver Signature & Completion</h3>
@@ -757,15 +767,17 @@
         </div>
     </div>
 
-    <script src="/static/js/core.js?v=20260218.2"></script>
-    <script src="/static/js/ui.js?v=20260218.2"></script>
-    <script src="/static/js/containers.js?v=20260216.1"></script>
-    <script src="/static/js/truck_offloading.js?v=20260216.1"></script>
-    <script src="/static/js/backload_truck.js?v=20260216.1"></script>
-    <script src="/static/js/tab_loader.js?v=20260218.2"></script>
-    <script src="/static/js/transnet.js?v=20260216.1"></script>
-    <script src="/static/js/vessel_bookings.js?v=20260218.2"></script>
-    <script src="/static/js/operational_incidents.js?v=20260216.1"></script>
+    <script src="/static/js/core.js?v=20260220.1"></script>
+    <script src="/static/js/ui.js?v=20260226.3"></script>
+    <script src="/static/js/containers.js?v=20260226.4"></script>
+    <script src="/static/js/truck_offloading.js?v=20260226.1"></script>
+    <script src="/static/js/backload_truck.js?v=20260226.1"></script>
+    <script src="/static/js/truck_planning.js?v=20260220.2"></script>
+    <script src="/static/js/container_planning.js?v=20260226.3"></script>
+    <script src="/static/js/tab_loader.js?v=20260226.2"></script>
+    <script src="/static/js/transnet.js?v=20260220.1"></script>
+    <script src="/static/js/vessel_bookings.js?v=20260226.3"></script>
+    <script src="/static/js/operational_incidents.js?v=20260220.1"></script>
 
     <script>
         window.openNewContainerModal = window.openNewContainerModal || function() {

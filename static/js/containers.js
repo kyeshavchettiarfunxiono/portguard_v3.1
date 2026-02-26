@@ -543,7 +543,7 @@ let fclBookingsData = {};
 
 async function loadFCLBookings() {
     try {
-        const response = await APP.apiCall('/bookings');
+        const response = await APP.apiCall('/bookings/?booking_type=IMPORT');
         if (!response?.ok) {
             APP.showError('Failed to load bookings');
             return;
@@ -572,7 +572,12 @@ function updateFCLBookingDetails() {
     const clientInput = document.getElementById('fclClient');
     const vesselInput = document.getElementById('fclVesselName');
     if (clientInput) clientInput.value = booking.client || '';
-    if (vesselInput) vesselInput.value = booking.vessel_name || '';
+    if (vesselInput && !vesselInput.value) vesselInput.value = booking.vessel_name || '';
+
+    const voyageInput = document.getElementById('fclVoyageNumber');
+    if (voyageInput && !voyageInput.value) {
+        voyageInput.value = booking.voyage_number || booking.arrival_voyage || '';
+    }
 
     const typeMap = {
         '20FT': '20ft',
@@ -591,6 +596,26 @@ function showRegisterFCLForm() {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         loadFCLBookings();
+    }
+}
+
+async function openImportBookingFlow() {
+    if (window.TabLoader && typeof window.TabLoader.switchTab === 'function') {
+        await window.TabLoader.switchTab('vessel_bookings');
+    }
+
+    if (typeof window.openImportBookingModal === 'function') {
+        window.openImportBookingModal();
+        return;
+    }
+
+    if (typeof window.openBookingModal === 'function') {
+        window.openBookingModal(null, null);
+        const bookingType = document.getElementById('bookingType');
+        if (bookingType) {
+            bookingType.value = 'IMPORT';
+            bookingType.dispatchEvent(new Event('change'));
+        }
     }
 }
 
@@ -698,7 +723,7 @@ let currentPackingStep = null;
 const PACKING_STEP_INFO = {
     BEFORE_PACKING: {
         title: 'Step 1: Before Packing Photos',
-        instructions: 'Document the empty container condition. Capture interior, exterior, doors, floor, roof, and corners. 20ft: minimum 4 photos. 40ft/HC: minimum 5 photos.'
+        instructions: 'Complete container condition report first, then document empty-container condition with photos. 20ft: minimum 4 photos. 40ft/HC: minimum 5 photos.'
     },
     CARGO_PHOTOS: {
         title: 'Step 2: Cargo Photos',
@@ -796,6 +821,7 @@ function updatePackingStepUI(progress) {
     if (uploadedEl) uploadedEl.textContent = String(progress.current_photos || 0);
     if (typeEl) typeEl.textContent = progress.container_type || '-';
     if (stepEl) stepEl.textContent = progress.current_step || '-';
+    renderPackingConditionSection(progress);
 
     const stepOrder = ['BEFORE_PACKING', 'CARGO_PHOTOS', 'AFTER_PACKING', 'SEALING'];
     const currentIndex = stepOrder.indexOf(progress.current_step);
@@ -830,6 +856,92 @@ function updatePackingStepUI(progress) {
         };
         nextBtn.textContent = nextLabels[progress.current_step] || 'Next Step';
     }
+}
+
+function renderPackingConditionSection(progress) {
+    const stepContent = document.getElementById('packingStepContent');
+    if (!stepContent) return;
+
+    let section = document.getElementById('packingConditionSection');
+    if (!section) {
+        section = document.createElement('div');
+        section.id = 'packingConditionSection';
+        section.style.cssText = 'margin: 1rem 0; padding: 1rem; border: 1px solid #d8dce6; border-radius: 8px; background: #f8f9ff;';
+        const photoSection = document.getElementById('packingPhotoSection');
+        if (photoSection && photoSection.parentElement === stepContent) {
+            stepContent.insertBefore(section, photoSection);
+        } else {
+            stepContent.appendChild(section);
+        }
+    }
+
+    const show = progress.current_step === 'BEFORE_PACKING';
+    section.style.display = show ? 'block' : 'none';
+    if (!show) return;
+
+    const selectedSuitable = progress.condition_status === 'SUITABLE' ? 'selected' : '';
+    const selectedUnsuitable = progress.condition_status === 'UNSUITABLE' ? 'selected' : '';
+    const notesValue = (progress.condition_notes || '').replace(/"/g, '&quot;');
+    const submitted = Boolean(progress.condition_report_completed);
+
+    section.innerHTML = `
+        <h4 style="margin: 0 0 0.5rem 0; color: #0f1d3d;">Pre-Packing Container Condition Report *</h4>
+        <p style="margin: 0 0 0.75rem 0; color: #555;">Required before advancing to cargo photos.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">Condition Status</label>
+                <select id="packingConditionStatus" style="width: 100%; padding: 0.6rem; border: 2px solid #e0e0e0; border-radius: 4px;">
+                    <option value="">Select...</option>
+                    <option value="SUITABLE" ${selectedSuitable}>SUITABLE</option>
+                    <option value="UNSUITABLE" ${selectedUnsuitable}>UNSUITABLE</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0; display: flex; align-items: end;">
+                <button class="btn btn-primary" onclick="submitPackingConditionReport()" style="width: 100%;">Submit Condition Report</button>
+            </div>
+        </div>
+        <div class="form-group" style="margin: 0;">
+            <label style="color: #0f1d3d; font-weight: 600;">Condition Notes</label>
+            <textarea id="packingConditionNotes" placeholder="Describe container condition before packing" style="width: 100%; min-height: 80px; padding: 0.6rem; border: 2px solid #e0e0e0; border-radius: 4px;">${notesValue}</textarea>
+        </div>
+        <div style="margin-top: 0.75rem; color: ${submitted ? '#1e7e34' : '#8a6d3b'}; font-size: 0.92rem;">
+            ${submitted ? `Condition report submitted: ${progress.condition_status || 'N/A'}` : 'Condition report pending'}
+        </div>
+    `;
+}
+
+async function submitPackingConditionReport() {
+    if (!currentPackingContainerId) return;
+    const status = document.getElementById('packingConditionStatus')?.value || '';
+    const notes = document.getElementById('packingConditionNotes')?.value?.trim() || null;
+
+    if (!status) {
+        APP.showError('Select container condition status first.');
+        return;
+    }
+
+    const response = await APP.apiCall(`/packing/condition-report/${currentPackingContainerId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            container_id: currentPackingContainerId,
+            condition_status: status,
+            condition_notes: notes
+        })
+    });
+
+    if (!response?.ok) {
+        const error = await response.json();
+        APP.showError(error.detail || 'Failed to submit condition report');
+        return;
+    }
+
+    if (status === 'UNSUITABLE') {
+        APP.showError('Container marked UNSUITABLE. Please report/resolve damage before continuing.');
+    } else {
+        APP.showSuccess('Condition report submitted. You can continue packing after required photos are uploaded.');
+    }
+    await loadPackingProgress();
+    await loadContainers();
 }
 
 async function updatePackingAdvanceState() {
@@ -1155,7 +1267,8 @@ async function loadBookingsForClient(client = null) {
         }
 
         const token = localStorage.getItem('access_token');
-        const response = await fetch(`/api/bookings?client=${selectedClient}`, {
+        const normalizedClient = String(selectedClient).trim().replace(/\s+/g, '_').toUpperCase();
+        const response = await fetch(`/api/bookings/?client=${encodeURIComponent(normalizedClient)}&booking_type=EXPORT`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -1394,11 +1507,25 @@ async function submitFCLRegistration(e) {
             cargo_type: (formData.get('cargo_type') || '').toString() || null,
             seal_no: (formData.get('seal_no') || '').toString() || null,
             unpacking_location: (formData.get('unpacking_location') || '').toString() || null,
+            manifest_vessel_name: (formData.get('manifest_vessel_name') || '').toString().trim() || null,
+            manifest_voyage_number: (formData.get('manifest_voyage_number') || '').toString().trim() || null,
+            depot_list_fcl_count: formData.get('depot_list_fcl_count') !== null && String(formData.get('depot_list_fcl_count')).trim() !== ''
+                ? Number(formData.get('depot_list_fcl_count'))
+                : null,
+            depot_list_grp_count: formData.get('depot_list_grp_count') !== null && String(formData.get('depot_list_grp_count')).trim() !== ''
+                ? Number(formData.get('depot_list_grp_count'))
+                : null,
             notes: (formData.get('notes') || '').toString() || null
         };
 
-        if (!payload.container_no || !payload.booking_id || !payload.arrival_date) {
+        if (!payload.container_no || !payload.booking_id || !payload.arrival_date || !payload.manifest_vessel_name) {
             APP.showError('Please fill in all required fields (marked with *)');
+            return;
+        }
+
+        if ((payload.depot_list_fcl_count !== null && payload.depot_list_fcl_count < 0) ||
+            (payload.depot_list_grp_count !== null && payload.depot_list_grp_count < 0)) {
+            APP.showError('Depot list counts cannot be negative');
             return;
         }
 
@@ -1440,6 +1567,8 @@ window.submitFCLRegistration = submitFCLRegistration;
 window.updateFCLBookingDetails = updateFCLBookingDetails;
 window.loadFCLBookings = loadFCLBookings;
 window.loadBookingsForClient = loadBookingsForClient;
+window.openImportBookingFlow = openImportBookingFlow;
+window.submitPackingConditionReport = submitPackingConditionReport;
 window.displayExportContainers = displayExportContainers;
 window.updateExportPackingStats = updateExportPackingStats;
 

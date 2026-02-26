@@ -22,6 +22,13 @@ class UnpackingSessionResponse(BaseModel):
     damage_photo_count: int
     cargo_items_count: int
     manifest_complete: bool
+    manifest_document_reference: Optional[str]
+    manifest_notes: Optional[str]
+    manifest_documented_at: Optional[datetime]
+    manifest_documented_by: Optional[UUID]
+    cargo_unloading_started_at: Optional[datetime]
+    cargo_unloading_completed_at: Optional[datetime]
+    cargo_unloading_duration_minutes: Optional[int]
     final_notes: Optional[str]
     created_at: datetime
     started_at: Optional[datetime]
@@ -44,10 +51,14 @@ class UnpackingProgressResponse(BaseModel):
     cargo_unloading_photos: int
     
     # Requirements
-    exterior_required: int = 3
-    door_required: int = 2
-    interior_required: int = 3
+    exterior_required: int = 1
+    door_required: int = 1
+    interior_required: int = 2
     cargo_required: int = 2
+    manifest_required: int = 0
+    cargo_unloading_started_at: Optional[datetime] = None
+    cargo_unloading_completed_at: Optional[datetime] = None
+    cargo_unloading_duration_minutes: Optional[int] = None
     
     # Damage tracking
     damage_reported: bool
@@ -55,4 +66,8 @@ class UnpackingProgressResponse(BaseModel):
     
     # Cargo
     cargo_items_count: int
+    manifest_complete: bool
+    manifest_document_reference: Optional[str] = None
+    manifest_notes: Optional[str] = None
+    manifest_documented_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

@@ -5,6 +5,7 @@
 
 import logging
 import os
+import uuid
 from pathlib import Path
 from threading import Event, Thread
 from fastapi import FastAPI, Request, Depends, HTTPException
@@ -19,6 +20,8 @@ from core.database import engine, get_db, Base, SessionLocal
 from core.security import get_current_user
 from services.container_service import ContainerService
 from services.transnet_service import run_transnet_ingest
+from services.auth_service import AuthService
+from services.audit_service import AuditService
 
 # Import all models to register them
 from models.user import User
@@ -35,9 +38,12 @@ from models.backload_truck import BackloadTruck, BackloadCargoItem
 from models.damage_report import DamageReport, DamageReportPhoto
 from models.operational_incident import OperationalIncident, OperationalIncidentPhoto
 from models.transnet import TransnetVesselStack
+from models.audit_log import AuditLog
+from models.container_plan import ContainerPlan
+from models.container_planning_entry import ContainerPlanningEntry
 
 # Import routers
-from api import auth, containers, planning, bookings, packing_workflow, unpacking_workflow, truck_offloading, backload_truck, packing, unpacking, admin, damage_reports, transnet, operational_incidents
+from api import auth, containers, planning, bookings, packing_workflow, unpacking_workflow, truck_offloading, backload_truck, packing, unpacking, admin, damage_reports, transnet, operational_incidents, audit, container_planning
 
 def ensure_damage_report_schema() -> None:
     if not engine.url.drivername.startswith("sqlite"):
@@ -63,9 +69,147 @@ def ensure_damage_report_schema() -> None:
             conn.execute(text("ALTER TABLE damage_reports ADD COLUMN resolved_by TEXT"))
 
 
+def ensure_booking_schema() -> None:
+    with engine.begin() as conn:
+        if engine.url.drivername.startswith("sqlite"):
+            exists = conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='bookings'")
+            ).fetchone()
+            if not exists:
+                return
+
+            cols = conn.execute(text("PRAGMA table_info(bookings)")).fetchall()
+            col_names = {row[1] for row in cols}
+
+            if "booking_type" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN booking_type TEXT NOT NULL DEFAULT 'EXPORT'"))
+            if "voyage_number" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN voyage_number TEXT"))
+            if "arrival_voyage" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN arrival_voyage TEXT"))
+            if "date_in_depot" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN date_in_depot DATETIME"))
+            if "category" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN category TEXT"))
+            if "notes" not in col_names:
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN notes TEXT"))
+            return
+
+        if engine.url.drivername.startswith("postgresql"):
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS booking_type VARCHAR(20) NOT NULL DEFAULT 'EXPORT'"))
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS voyage_number VARCHAR(120)"))
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS arrival_voyage VARCHAR(120)"))
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS date_in_depot TIMESTAMP"))
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS category VARCHAR(30)"))
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS notes TEXT"))
+
+
+def ensure_container_schema() -> None:
+    with engine.begin() as conn:
+        if engine.url.drivername.startswith("sqlite"):
+            exists = conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='containers'")
+            ).fetchone()
+            if not exists:
+                return
+
+            cols = conn.execute(text("PRAGMA table_info(containers)")).fetchall()
+            col_names = {row[1] for row in cols}
+
+            if "manifest_vessel_name" not in col_names:
+                conn.execute(text("ALTER TABLE containers ADD COLUMN manifest_vessel_name TEXT"))
+            if "manifest_voyage_number" not in col_names:
+                conn.execute(text("ALTER TABLE containers ADD COLUMN manifest_voyage_number TEXT"))
+            if "depot_list_fcl_count" not in col_names:
+                conn.execute(text("ALTER TABLE containers ADD COLUMN depot_list_fcl_count INTEGER"))
+            if "depot_list_grp_count" not in col_names:
+                conn.execute(text("ALTER TABLE containers ADD COLUMN depot_list_grp_count INTEGER"))
+            return
+
+        if engine.url.drivername.startswith("postgresql"):
+            conn.execute(text("ALTER TABLE containers ADD COLUMN IF NOT EXISTS manifest_vessel_name VARCHAR(160)"))
+            conn.execute(text("ALTER TABLE containers ADD COLUMN IF NOT EXISTS manifest_voyage_number VARCHAR(120)"))
+            conn.execute(text("ALTER TABLE containers ADD COLUMN IF NOT EXISTS depot_list_fcl_count INTEGER"))
+            conn.execute(text("ALTER TABLE containers ADD COLUMN IF NOT EXISTS depot_list_grp_count INTEGER"))
+
+
+def ensure_unpacking_schema() -> None:
+    with engine.begin() as conn:
+        if engine.url.drivername.startswith("sqlite"):
+            exists = conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='unpacking_sessions'")
+            ).fetchone()
+            if not exists:
+                return
+
+            cols = conn.execute(text("PRAGMA table_info(unpacking_sessions)")).fetchall()
+            col_names = {row[1] for row in cols}
+
+            if "cargo_unloading_started_at" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN cargo_unloading_started_at DATETIME"))
+            if "cargo_unloading_completed_at" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN cargo_unloading_completed_at DATETIME"))
+            if "cargo_unloading_duration_minutes" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN cargo_unloading_duration_minutes INTEGER"))
+            if "manifest_document_reference" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN manifest_document_reference TEXT"))
+            if "manifest_notes" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN manifest_notes TEXT"))
+            if "manifest_documented_at" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN manifest_documented_at DATETIME"))
+            if "manifest_documented_by" not in col_names:
+                conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN manifest_documented_by TEXT"))
+            return
+
+        if engine.url.drivername.startswith("postgresql"):
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS cargo_unloading_started_at TIMESTAMP"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS cargo_unloading_completed_at TIMESTAMP"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS cargo_unloading_duration_minutes INTEGER"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS manifest_document_reference VARCHAR(160)"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS manifest_notes TEXT"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS manifest_documented_at TIMESTAMP"))
+            conn.execute(text("ALTER TABLE unpacking_sessions ADD COLUMN IF NOT EXISTS manifest_documented_by VARCHAR(36)"))
+
+
+def ensure_packing_schema() -> None:
+    with engine.begin() as conn:
+        if engine.url.drivername.startswith("sqlite"):
+            exists = conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='packing_sessions'")
+            ).fetchone()
+            if not exists:
+                return
+
+            cols = conn.execute(text("PRAGMA table_info(packing_sessions)")).fetchall()
+            col_names = {row[1] for row in cols}
+
+            if "condition_report_completed" not in col_names:
+                conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN condition_report_completed BOOLEAN NOT NULL DEFAULT 0"))
+            if "condition_status" not in col_names:
+                conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN condition_status TEXT"))
+            if "condition_notes" not in col_names:
+                conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN condition_notes TEXT"))
+            if "condition_reported_at" not in col_names:
+                conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN condition_reported_at DATETIME"))
+            if "condition_reported_by" not in col_names:
+                conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN condition_reported_by TEXT"))
+            return
+
+        if engine.url.drivername.startswith("postgresql"):
+            conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN IF NOT EXISTS condition_report_completed BOOLEAN NOT NULL DEFAULT FALSE"))
+            conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN IF NOT EXISTS condition_status VARCHAR(30)"))
+            conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN IF NOT EXISTS condition_notes TEXT"))
+            conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN IF NOT EXISTS condition_reported_at TIMESTAMP"))
+            conn.execute(text("ALTER TABLE packing_sessions ADD COLUMN IF NOT EXISTS condition_reported_by VARCHAR(36)"))
+
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 ensure_damage_report_schema()
+ensure_booking_schema()
+ensure_container_schema()
+ensure_unpacking_schema()
+ensure_packing_schema()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -101,9 +245,90 @@ app.include_router(backload_truck.router)
 app.include_router(packing.router, prefix="/api")
 app.include_router(unpacking.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
+app.include_router(container_planning.router, prefix="/api")
 app.include_router(damage_reports.router, prefix="/api")
 app.include_router(transnet.router)
 app.include_router(operational_incidents.router, prefix="/api")
+
+
+def _should_audit_request(path: str, method: str) -> bool:
+    if method.upper() == "OPTIONS":
+        return False
+    if path.startswith("/api/admin/audit"):
+        return False
+    if path.startswith("/api/health") or path == "/health":
+        return False
+    if path.startswith("/static") or path.startswith("/uploads"):
+        return False
+
+    include_reads = os.getenv("AUDIT_LOG_INCLUDE_READS", "false").lower() in {"1", "true", "yes"}
+    if include_reads:
+        return path.startswith("/api") or path.startswith("/auth")
+
+    return method.upper() in {"POST", "PUT", "PATCH", "DELETE"} and (
+        path.startswith("/api") or path.startswith("/auth")
+    )
+
+
+@app.middleware("http")
+async def audit_request_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    status_code = 500
+    response = None
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+    finally:
+        path = request.url.path
+        method = request.method.upper()
+
+        if _should_audit_request(path, method):
+            actor = None
+            db = None
+            try:
+                db = SessionLocal()
+
+                bearer = request.headers.get("Authorization", "")
+                token = None
+                if bearer.lower().startswith("bearer "):
+                    token = bearer.split(" ", 1)[1].strip()
+                if not token:
+                    token = request.cookies.get("access_token")
+
+                if token:
+                    try:
+                        actor = AuthService.get_user_from_token(token, db)
+                    except Exception:
+                        actor = None
+
+                AuditService.create_log(
+                    db,
+                    action=f"{method} {path}",
+                    category="http",
+                    level="ERROR" if status_code >= 400 else "INFO",
+                    message="HTTP request audit event",
+                    actor=actor,
+                    request_id=request_id,
+                    endpoint=path,
+                    http_method=method,
+                    status_code=status_code,
+                    ip_address=request.client.host if request.client else None,
+                    metadata={
+                        "query": str(request.url.query or ""),
+                        "user_agent": request.headers.get("user-agent", ""),
+                    },
+                )
+            except Exception as exc:
+                log.error("Failed to persist audit log: %s", exc, exc_info=True)
+            finally:
+                if db:
+                    db.close()
+
+    if response is not None:
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 def _transnet_scheduler_loop(stop_event: Event) -> None:

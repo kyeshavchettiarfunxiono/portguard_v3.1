@@ -60,6 +60,10 @@ class ContainerCreate(ContainerBase):
     cargo_type: Optional[str] = Field(None, description="Type of cargo (e.g., Groupage Cargo, Steel, Automotive)")
     arrival_date: Optional[datetime] = Field(None, description="Date when container arrived at port")
     unpacking_location: Optional[str] = Field(None, description="Location where container will be unpacked")
+    manifest_vessel_name: Optional[str] = Field(None, description="Manual vessel name captured from import manifest")
+    manifest_voyage_number: Optional[str] = Field(None, description="Manual voyage number captured from import manifest")
+    depot_list_fcl_count: Optional[int] = Field(None, ge=0, description="FCL count from depot list")
+    depot_list_grp_count: Optional[int] = Field(None, ge=0, description="Groupage count from depot list")
     # The default status is handled by the DB Model as 'REGISTERED'
 
 class ContainerUpdate(BaseModel):
@@ -94,6 +98,10 @@ class ContainerResponse(ContainerBase):
     cargo_type: Optional[str] = None
     arrival_date: Optional[datetime] = None
     unpacking_location: Optional[str] = None
+    manifest_vessel_name: Optional[str] = None
+    manifest_voyage_number: Optional[str] = None
+    depot_list_fcl_count: Optional[int] = None
+    depot_list_grp_count: Optional[int] = None
     
     # Audit trail fields for the 8 Supervisors
     created_at: datetime

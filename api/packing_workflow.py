@@ -2,6 +2,7 @@
 API endpoints for packing workflow management.
 """
 from uuid import UUID
+from datetime import datetime
 # Software Engineer: Kyeshav Chettiar 
 import time
 # Company FXO - Adcorp 
@@ -17,9 +18,9 @@ from core.database import get_db
 from core.security import get_current_user
 from models.user import User
 from models.container import Container, ContainerStatus
-from models.packing import PackingStep
+from models.packing import PackingStep, ContainerConditionStatus
 from models.evidence import ContainerImage
-from schemas.packing import PackingSessionResponse, SealingRequest, PhotoUploadRequest
+from schemas.packing import PackingSessionResponse, SealingRequest, PhotoUploadRequest, ConditionReportRequest
 from services.packing_service import PackingService
 from services.evidence_service import EvidenceService
 
@@ -156,15 +157,18 @@ def list_packing_photos(
 
     photos = []
     for image in images:
-        file_path = Path(image.file_path)
+        image_file_path = py_cast(str, image.file_path)
+        file_path = Path(image_file_path)
         if not file_path.exists():
             continue
         rel_path = file_path.as_posix()
         url = f"/uploads/{rel_path.replace('uploads/', '')}"
+        uploaded_at = py_cast(object, image.uploaded_at)
+        uploaded_at_iso = uploaded_at.isoformat() if isinstance(uploaded_at, datetime) else None
         photos.append({
             "id": str(image.id),
             "url": url,
-            "uploaded_at": image.uploaded_at.isoformat() if image.uploaded_at else None
+            "uploaded_at": uploaded_at_iso
         })
 
     return {"photos": photos}
@@ -203,7 +207,8 @@ def delete_packing_photo(
         elif step == PackingStep.SEALING:
             session.seal_photo_count = max((session.seal_photo_count or 0) - 1, 0)  # type: ignore
 
-    file_path = Path(image.file_path)
+    image_file_path = py_cast(str, image.file_path)
+    file_path = Path(image_file_path)
     if file_path.exists():
         try:
             file_path.unlink()
@@ -224,6 +229,28 @@ def advance_packing_step(
 ):
     """Advance to next step if current step is complete."""
     session = PackingService.advance_step(container_id, db)
+    return session
+
+
+@router.post("/condition-report/{container_id}", response_model=PackingSessionResponse)
+def submit_condition_report(
+    container_id: UUID,
+    request: ConditionReportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Capture mandatory container condition report before progressing packing workflow."""
+    if request.container_id != container_id:
+        raise HTTPException(status_code=400, detail="Container ID mismatch")
+
+    session = PackingService.submit_condition_report(
+        container_id=container_id,
+        condition_status=request.condition_status,
+        condition_notes=request.condition_notes,
+        user_id=py_cast(UUID, current_user.id),
+        db=db,
+    )
+
     return session
 
 

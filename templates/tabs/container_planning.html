@@ -2,12 +2,112 @@
 <div id="container_planning" class="tab-panel">
     <div class="tab-header">
         <h2 style="margin: 0;">Container Planning</h2>
-        <p style="margin: 0.35rem 0 0; color: #6b7280;">Stack schedules, staging, and release readiness.</p>
+        <p style="margin: 0.35rem 0 0; color: #6b7280;">Plan daily container shipments and track planned vs actual performance</p>
     </div>
-    <div class="job-section">
+
+    <div class="job-section" style="margin-top: 1rem;">
+        <div class="job-card" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <select id="containerPlanningViewRange" style="min-width: 210px; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                <option value="today">Today</option>
+                <option value="tomorrow">Tomorrow</option>
+                <option value="custom">Custom Date</option>
+            </select>
+            <input id="containerPlanningCustomDate" type="date" style="display: none; min-width: 180px; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+            <button class="btn btn-primary" onclick="toggleContainerPlanningForm()">+ Plan Containers</button>
+        </div>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 1rem;">
+        <div class="stat-card">
+            <div class="stat-label">Planned Containers</div>
+            <div class="stat-value" id="containerPlanningPlannedCount">0</div>
+            <div class="stat-subtext">from plan entries</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Actual Containers</div>
+            <div class="stat-value" id="containerPlanningActualCount">0</div>
+            <div class="stat-subtext">created in system</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Variance</div>
+            <div class="stat-value" id="containerPlanningVariance">0</div>
+            <div class="stat-subtext">actual - planned</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Finalized</div>
+            <div class="stat-value" id="containerPlanningCompletedCount">0</div>
+            <div class="stat-subtext">completed containers</div>
+        </div>
+    </div>
+
+    <div class="job-section" id="containerPlanningFormSection" style="margin-top: 1rem; display: none;">
         <div class="job-card">
-            <div style="font-weight: 600; margin-bottom: 0.5rem;">Stack Plan</div>
-            <div style="color: #6b7280;">Container stack plans will appear here.</div>
+            <h3 style="margin: 0 0 1rem 0; color: #0f1d3d;">Plan New Containers</h3>
+            <form id="containerPlanningForm" style="display: grid; gap: 1rem;">
+                <div style="background: #eaf0fb; border-radius: 10px; padding: 1rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">Link to Vessel Booking (Optional)</label>
+                    <select id="containerPlanningBookingId" style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                        <option value="">Select from existing vessel bookings</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Vessel Name *</label>
+                        <input id="containerPlanningVesselName" type="text" placeholder="Enter vessel name" required style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Client *</label>
+                        <select id="containerPlanningClientMode" style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px; margin-bottom: 0.5rem;">
+                            <option value="CUSTOM">Custom Client</option>
+                        </select>
+                        <input id="containerPlanningClientName" type="text" placeholder="Enter custom client name" required style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Container Type *</label>
+                        <select id="containerPlanningType" required style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                            <option value="20FT">20ft Container</option>
+                            <option value="40FT">40ft Container</option>
+                            <option value="HC">HC Container</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Planned Quantity *</label>
+                        <input id="containerPlanningQuantity" type="number" min="1" placeholder="Number of containers" required style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Planned Date *</label>
+                        <input id="containerPlanningDate" type="date" required style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Booking Reference</label>
+                        <input id="containerPlanningBookingReference" type="text" placeholder="Enter booking reference" style="width: 100%; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.4rem;">Notes</label>
+                    <textarea id="containerPlanningNotes" placeholder="Additional planning notes..." style="width: 100%; min-height: 100px; padding: 0.65rem; border: 1px solid #d8dee9; border-radius: 8px;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" class="btn btn-secondary" onclick="toggleContainerPlanningForm(false)">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1rem;">
+        <h3 class="section-title" id="containerPlanningAnalysisTitle">Planned vs Actual Analysis</h3>
+        <div id="containerPlanningAnalysis" class="job-list">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">Loading container plans...</div>
         </div>
     </div>
 </div>

@@ -170,6 +170,30 @@ class Container(Base):
         nullable=True,
         doc="Location where container will be unpacked (e.g., Warehouse 1, Bay 5)"
     )
+
+    manifest_vessel_name = Column(
+        String(160),
+        nullable=True,
+        doc="Manual vessel name captured from import manifest"
+    )
+
+    manifest_voyage_number = Column(
+        String(120),
+        nullable=True,
+        doc="Manual voyage number captured from import manifest"
+    )
+
+    depot_list_fcl_count = Column(
+        Integer,
+        nullable=True,
+        doc="Number of FCL units awaiting unpack from client depot list"
+    )
+
+    depot_list_grp_count = Column(
+        Integer,
+        nullable=True,
+        doc="Number of groupage units awaiting unpack from client depot list"
+    )
     
     # Foreign Keys
     booking_id = Column(

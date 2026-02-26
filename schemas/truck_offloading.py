@@ -2,7 +2,7 @@
 Pydantic schemas for truck offloading workflows.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,10 +18,25 @@ class TruckOffloadingCreate(BaseModel):
     client: str = Field(..., max_length=120)
     delivery_note_number: str = Field(..., max_length=80)
     commodity_type: str = Field(..., max_length=120)
-    quantity: float = Field(..., ge=0)
-    unit: str = Field(..., max_length=30)
+    quantity: Optional[float] = Field(None, ge=0)
+    unit: Optional[str] = Field(None, max_length=30)
     horse_registration: Optional[str] = Field(None, max_length=30)
     notes: Optional[str] = None
+
+
+class TruckOffloadingItemCreate(BaseModel):
+    description: str = Field(..., max_length=200)
+    quantity: float = Field(..., gt=0)
+    weight_kg: float = Field(..., ge=0)
+
+
+class TruckOffloadingItemResponse(BaseModel):
+    id: UUID
+    description: str
+    quantity: float
+    weight_kg: float
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TruckOffloadingDamageReport(BaseModel):
@@ -78,5 +93,5 @@ class TruckOffloadingResponse(BaseModel):
 
     created_at: datetime
     updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+    items: List[TruckOffloadingItemResponse] = []
     model_config = ConfigDict(from_attributes=True)

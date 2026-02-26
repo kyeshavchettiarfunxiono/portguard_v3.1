@@ -74,6 +74,7 @@ async function submitBackloadTruck(event) {
             const result = await response.json();
             APP.showSuccess(`Truck ${result.truck_registration} registered`);
             closeBackloadTruckModal();
+            await startBackloadTruck(result.id);
             loadBackloadTruckData();
         } else {
             const error = await response.json();
@@ -193,7 +194,7 @@ function canAdvanceBackloadStep(truck) {
         case 'BEFORE_PHOTOS':
             return (truck.before_photos || 0) >= 2;
         case 'MANIFEST_WEIGHTS':
-            return (truck.items || []).length > 0 && Boolean(truck.total_cargo_weight);
+            return (truck.items || []).length > 0 && truck.total_cargo_weight !== null && truck.total_cargo_weight !== undefined;
         case 'PACKING_PHOTOS':
             return (truck.packing_photos || 0) >= 2;
         case 'AFTER_PHOTOS':
@@ -216,7 +217,7 @@ function updateBackloadWorkflowControls(truck) {
     const isSignoff = truck.current_step === 'DRIVER_SIGNOFF';
     const canAdvance = canAdvanceBackloadStep(truck);
 
-    if (proceedBtn) proceedBtn.disabled = !(isManifest && canAdvance);
+    if (proceedBtn) proceedBtn.disabled = !isManifest;
     if (advanceBtn) advanceBtn.disabled = !canAdvance;
     if (signoffBtn) signoffBtn.disabled = !isSignoff;
     if (completeBtn) completeBtn.disabled = !(isSignoff && Boolean(truck.signoff_name));
@@ -230,8 +231,8 @@ function updateBackloadWorkflowControls(truck) {
                     break;
                 case 'MANIFEST_WEIGHTS':
                     if ((truck.items || []).length === 0) {
-                        blockedReason = 'Add at least 1 manifest item to advance.';
-                    } else if (!truck.total_cargo_weight) {
+                        blockedReason = 'Add at least 1 manifest item, then save total cargo weight to advance.';
+                    } else if (truck.total_cargo_weight === null || truck.total_cargo_weight === undefined) {
                         blockedReason = 'Enter total cargo weight to advance.';
                     }
                     break;

@@ -16,6 +16,8 @@ from schemas.truck_offloading import (
     TruckOffloadingCreate,
     TruckOffloadingDamageAssessmentComplete,
     TruckOffloadingDamageReport,
+    TruckOffloadingItemCreate,
+    TruckOffloadingItemResponse,
     TruckOffloadingResponse,
     TruckOffloadingSignoff
 )
@@ -101,6 +103,17 @@ async def upload_truck_photo(
         "message": f"Photo uploaded for {step.value}",
         "file_path": str(file_path)
     }
+
+
+@router.post("/{truck_id}/offloading-items", response_model=TruckOffloadingItemResponse)
+def add_offloading_item(
+    truck_id: UUID,
+    payload: TruckOffloadingItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    truck = TruckOffloadingService.get_truck(truck_id, db)
+    return TruckOffloadingService.add_offloading_item(truck, payload, db)
 
 
 @router.post("/{truck_id}/advance-step", response_model=TruckOffloadingResponse)

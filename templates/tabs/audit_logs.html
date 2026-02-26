@@ -1,0 +1,57 @@
+<!-- Admin Audit Logs Tab -->
+<div id="audit_logs" class="tab-panel">
+    <div class="tab-header">
+        <h2 style="margin: 0; color: #0f1d3d;">Admin Audit Logs</h2>
+        <p style="margin: 0.35rem 0 0; color: #6b7280;">Centralized system and API audit trail for governance, monitoring, and incident response.</p>
+    </div>
+
+    <div class="job-section" style="margin-top: 1.25rem;">
+        <h3 class="section-title">Filters</h3>
+        <div class="job-details" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem;">
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">Level</label>
+                <select id="auditLevelFilter" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+                    <option value="">All</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARN">WARN</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">Endpoint</label>
+                <input id="auditEndpointFilter" type="text" placeholder="/api/admin/users" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">Actor Email</label>
+                <input id="auditActorFilter" type="text" placeholder="admin@company.com" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">Status Code</label>
+                <input id="auditStatusFilter" type="number" min="100" max="599" placeholder="401" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">From (UTC)</label>
+                <input id="auditFromFilter" type="datetime-local" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="color: #0f1d3d; font-weight: 600;">To (UTC)</label>
+                <input id="auditToFilter" type="datetime-local" style="width: 100%; padding: 0.55rem; border: 1px solid #ccd6e0; border-radius: 6px;">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 0.8rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="auditRefreshBtn" onclick="loadAuditLogs()">Refresh Logs</button>
+            <button class="btn btn-secondary" id="auditClearBtn" onclick="clearAuditFilters()" style="background: #f0f0f0; color: #333; border: 1px solid #ddd;">Clear Filters</button>
+            <button class="btn btn-secondary" id="auditPruneBtn" onclick="pruneAuditLogs()" style="background: #fff5f5; color: #9b2c2c; border: 1px solid #f3b5b5;">Prune Old Logs</button>
+            <span id="auditMeta" style="margin-left: auto; color: #6b7280; align-self: center; font-size: 0.9rem;"></span>
+        </div>
+    </div>
+
+    <div class="job-section" style="margin-top: 1rem;">
+        <h3 class="section-title">Recent Events</h3>
+        <div class="job-list" id="auditLogList">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #888;">Loading audit logs...</div>
+        </div>
+    </div>
+</div>

@@ -30,6 +30,11 @@ class PackingStep(PyEnum):
     SEALING = "SEALING"
 
 
+class ContainerConditionStatus(PyEnum):
+    SUITABLE = "SUITABLE"
+    UNSUITABLE = "UNSUITABLE"
+
+
 class PackingSession(Base):
     """
     Tracks the packing workflow session for a container.
@@ -64,6 +69,17 @@ class PackingSession(Base):
     before_packing_photos = Column(Integer, default=0, doc="Count of before packing photos")
     cargo_photos = Column(Integer, default=0, doc="Count of cargo photos")
     after_packing_photos = Column(Integer, default=0, doc="Count of after packing photos")
+
+    # Pre-packing condition report (required before progression)
+    condition_report_completed = Column(Boolean, default=False, nullable=False)
+    condition_status = Column(
+        Enum(ContainerConditionStatus, native_enum=False),
+        nullable=True,
+        doc="Condition assessment before packing"
+    )
+    condition_notes = Column(String(2000), nullable=True)
+    condition_reported_at = Column(DateTime(timezone=True), nullable=True)
+    condition_reported_by = Column(UUID(as_uuid=True), nullable=True)
     
     # Sealing information
     seal_number = Column(String(100), nullable=True, doc="Applied seal number")
@@ -111,6 +127,12 @@ class PackingSession(Base):
     def can_move_to_next_step(self, container_type: str) -> bool:
         """Check if current step is complete and can advance."""
         current_step = py_cast(PackingStep, self.current_step)
+        condition_status = py_cast(Optional[ContainerConditionStatus], getattr(self, 'condition_status', None))
+        if current_step == PackingStep.BEFORE_PACKING:
+            if not bool(self.condition_report_completed):
+                return False
+            if condition_status != ContainerConditionStatus.SUITABLE:
+                return False
         if current_step == PackingStep.SEALING:
             return self.is_step_complete(container_type) and bool(self.seal_number)
         return self.is_step_complete(container_type)

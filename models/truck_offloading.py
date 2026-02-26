@@ -4,12 +4,12 @@ Truck offloading model for export truck unloading workflows.
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum as PyEnum
-from typing import Optional
+from typing import Optional, List
 import uuid
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text, Boolean, Float
+from sqlalchemy import DateTime, Enum, Integer, String, Text, Boolean, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 
 
@@ -40,8 +40,8 @@ class TruckOffloading(Base):
     client: Mapped[str] = mapped_column(String(120), nullable=False)
     delivery_note_number: Mapped[str] = mapped_column(String(80), nullable=False)
     commodity_type: Mapped[str] = mapped_column(String(120), nullable=False)
-    quantity: Mapped[float] = mapped_column(Float, nullable=False)
-    unit: Mapped[str] = mapped_column(String(30), nullable=False)
+    quantity: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    unit: Mapped[str] = mapped_column(String(30), nullable=False, default="Units")
     horse_registration: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
@@ -80,3 +80,22 @@ class TruckOffloading(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
     modified_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+    items: Mapped[List[TruckOffloadingItem]] = relationship(
+        "TruckOffloadingItem",
+        back_populates="truck",
+        cascade="all, delete-orphan"
+    )
+
+
+class TruckOffloadingItem(Base):
+    __tablename__ = "truck_offloading_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    truck_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("truck_offloading.id", ondelete="CASCADE"))
+    description: Mapped[str] = mapped_column(String(200), nullable=False)
+    quantity: Mapped[float] = mapped_column(Float, nullable=False)
+    weight_kg: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+
+    truck: Mapped[TruckOffloading] = relationship("TruckOffloading", back_populates="items")

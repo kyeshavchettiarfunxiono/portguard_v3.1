@@ -1,5 +1,48 @@
 let vesselBookingItems = [];
 
+function formatClientLabel(value) {
+    return String(value || '')
+        .trim()
+        .replace(/_/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
+async function loadBookingClients(bookingType) {
+    const clientSelect = document.getElementById('bookingClient');
+    if (!clientSelect) return;
+
+    clientSelect.innerHTML = '<option value="">Loading clients...</option>';
+    const response = await APP.apiCall(`/bookings/client-options?booking_type=${encodeURIComponent(bookingType)}`);
+    if (!response?.ok) {
+        clientSelect.innerHTML = '<option value="">Select client</option>';
+        return;
+    }
+
+    const payload = await response.json();
+    const clients = Array.isArray(payload.clients) ? payload.clients : [];
+
+    clientSelect.innerHTML = '<option value="">Select client</option>';
+    clients.forEach((client) => {
+        const option = document.createElement('option');
+        option.value = client;
+        option.textContent = formatClientLabel(client);
+        clientSelect.appendChild(option);
+    });
+}
+
+async function syncBookingTypeFormState() {
+    const bookingTypeSelect = document.getElementById('bookingType');
+    const bookingType = (bookingTypeSelect?.value || 'EXPORT').toUpperCase();
+    const isImport = bookingType === 'IMPORT';
+
+    document.querySelectorAll('.import-only-field').forEach((node) => {
+        node.style.display = isImport ? 'block' : 'none';
+    });
+
+    await loadBookingClients(bookingType);
+}
+
 async function loadVesselBookings() {
     const list = document.getElementById('vesselBookingList');
     if (!list) return;
@@ -142,6 +185,52 @@ function refreshBookingDropdowns() {
     }
 }
 
+function normalizeBookingReference(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+async function findExistingBookingByReference(bookingReference, bookingType, client) {
+    const normalizedReference = normalizeBookingReference(bookingReference);
+    const normalizedType = String(bookingType || 'EXPORT').trim().toUpperCase();
+    const normalizedClient = String(client || '').trim().replace(/\s+/g, '_').toUpperCase();
+
+    if (!normalizedReference || !normalizedClient) {
+        return null;
+    }
+
+    const response = await APP.apiCall(`/bookings/?client=${encodeURIComponent(normalizedClient)}&booking_type=${encodeURIComponent(normalizedType)}`);
+    if (!response?.ok) {
+        return null;
+    }
+
+    const bookings = await response.json();
+    if (!Array.isArray(bookings)) {
+        return null;
+    }
+
+    return bookings.find((booking) => normalizeBookingReference(booking?.booking_reference) === normalizedReference) || null;
+}
+
+async function approveQueueItemWithBooking(queueId, bookingId, errorElement) {
+    if (!queueId) return true;
+
+    const approveResponse = await APP.apiCall(`/transnet/booking-queue/${queueId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId })
+    });
+
+    if (!approveResponse?.ok) {
+        if (errorElement) {
+            errorElement.textContent = 'Booking found/created but approval failed. Please retry approval.';
+            errorElement.classList.remove('is-hidden');
+        }
+        return false;
+    }
+
+    return true;
+}
+
 async function requeueQueueItem(queueId) {
     const response = await APP.apiCall(`/transnet/booking-queue/${queueId}/requeue`, { method: 'POST' });
     if (response?.ok) {
@@ -154,11 +243,15 @@ function openBookingModal(queueId, card) {
     const title = document.getElementById('bookingModalTitle');
     const error = document.getElementById('bookingModalError');
     const queueInput = document.getElementById('bookingQueueId');
+    const bookingType = document.getElementById('bookingType');
     const vesselName = document.getElementById('bookingVesselName');
     const voyage = document.getElementById('bookingVoyage');
     const reference = document.getElementById('bookingReference');
-    const client = document.getElementById('bookingClient');
     const containerType = document.getElementById('bookingContainerType');
+    const arrivalVoyage = document.getElementById('bookingArrivalVoyage');
+    const dateInDepot = document.getElementById('bookingDateInDepot');
+    const category = document.getElementById('bookingCategory');
+    const notes = document.getElementById('bookingNotes');
 
     if (!modal) return;
 
@@ -168,6 +261,9 @@ function openBookingModal(queueId, card) {
     }
 
     queueInput.value = queueId || '';
+    if (bookingType) {
+        bookingType.value = 'EXPORT';
+    }
     if (card) {
         vesselName.value = card.dataset.vesselName || '';
         voyage.value = card.dataset.voyageNumber || '';
@@ -177,10 +273,14 @@ function openBookingModal(queueId, card) {
     }
 
     reference.value = '';
-    client.value = '';
     containerType.value = '';
+    if (arrivalVoyage) arrivalVoyage.value = '';
+    if (dateInDepot) dateInDepot.value = '';
+    if (category) category.value = '';
+    if (notes) notes.value = '';
     title.textContent = queueId ? 'Approve Booking' : 'Create Booking';
 
+    syncBookingTypeFormState();
     modal.style.display = 'flex';
 }
 
@@ -188,6 +288,15 @@ function closeBookingModal() {
     const modal = document.getElementById('bookingModal');
     if (modal) {
         modal.style.display = 'none';
+    }
+}
+
+function openImportBookingModal() {
+    openBookingModal(null, null);
+    const bookingType = document.getElementById('bookingType');
+    if (bookingType) {
+        bookingType.value = 'IMPORT';
+        syncBookingTypeFormState();
     }
 }
 
@@ -218,11 +327,17 @@ function attachBookingHandlers() {
             event.preventDefault();
 
             const queueId = document.getElementById('bookingQueueId')?.value || null;
+            const bookingType = (document.getElementById('bookingType')?.value || 'EXPORT').toUpperCase();
             const vesselName = document.getElementById('bookingVesselName')?.value.trim();
+            const voyageNumber = document.getElementById('bookingVoyage')?.value.trim();
+            const arrivalVoyage = document.getElementById('bookingArrivalVoyage')?.value.trim();
+            const dateInDepot = document.getElementById('bookingDateInDepot')?.value;
             const bookingReference = document.getElementById('bookingReference')?.value.trim();
             const rawClient = document.getElementById('bookingClient')?.value.trim();
             const client = rawClient ? rawClient.replace(/\s+/g, '_').toUpperCase() : '';
             const containerType = document.getElementById('bookingContainerType')?.value.trim();
+            const category = (document.getElementById('bookingCategory')?.value || '').trim().toUpperCase();
+            const notes = document.getElementById('bookingNotes')?.value.trim();
             const error = document.getElementById('bookingModalError');
 
             if (!vesselName || !bookingReference || !client || !containerType) {
@@ -233,19 +348,37 @@ function attachBookingHandlers() {
                 return;
             }
 
+            if (bookingType === 'IMPORT' && !category) {
+                if (error) {
+                    error.textContent = 'Please choose import category (FCL or GRP).';
+                    error.classList.remove('is-hidden');
+                }
+                return;
+            }
+
             const createResponse = await APP.apiCall('/bookings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    booking_reference: bookingReference,
+                    booking_reference: normalizeBookingReference(bookingReference),
+                    booking_type: bookingType,
                     client,
                     vessel_name: vesselName,
+                    voyage_number: voyageNumber || null,
+                    arrival_voyage: bookingType === 'IMPORT' ? (arrivalVoyage || null) : null,
+                    date_in_depot: bookingType === 'IMPORT' && dateInDepot ? new Date(dateInDepot).toISOString() : null,
                     container_type: containerType,
+                    category: bookingType === 'IMPORT' ? category : null,
+                    notes: bookingType === 'IMPORT' ? (notes || null) : null,
                 })
             });
 
             if (!createResponse?.ok) {
                 let detail = 'Failed to create booking.';
+                let statusCode = 0;
+                if (typeof createResponse.status === 'number') {
+                    statusCode = createResponse.status;
+                }
                 try {
                     const payload = await createResponse.json();
                     if (payload?.detail) {
@@ -253,6 +386,25 @@ function attachBookingHandlers() {
                     }
                 } catch (_err) {
                     detail = 'Failed to create booking. Please try again.';
+                }
+
+                const duplicateReference = statusCode === 409 && /reference already exists/i.test(detail);
+                if (duplicateReference) {
+                    const existingBooking = await findExistingBookingByReference(bookingReference, bookingType, client);
+                    if (existingBooking?.id) {
+                        const approved = await approveQueueItemWithBooking(queueId, existingBooking.id, error);
+                        if (!approved) {
+                            return;
+                        }
+
+                        closeBookingModal();
+                        loadVesselBookings();
+                        refreshBookingDropdowns();
+                        if (typeof APP.showSuccess === 'function') {
+                            APP.showSuccess('Existing booking was reused successfully.');
+                        }
+                        return;
+                    }
                 }
 
                 if (error) {
@@ -264,20 +416,9 @@ function attachBookingHandlers() {
 
             const created = await createResponse.json();
 
-            if (queueId) {
-                const approveResponse = await APP.apiCall(`/transnet/booking-queue/${queueId}/approve`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ booking_id: created.id })
-                });
-
-                if (!approveResponse?.ok) {
-                    if (error) {
-                        error.textContent = 'Booking created but approval failed.';
-                        error.classList.remove('is-hidden');
-                    }
-                    return;
-                }
+            const approved = await approveQueueItemWithBooking(queueId, created.id, error);
+            if (!approved) {
+                return;
             }
 
             closeBookingModal();
@@ -285,6 +426,14 @@ function attachBookingHandlers() {
             refreshBookingDropdowns();
         });
         form.dataset.bound = 'true';
+    }
+
+    const bookingType = document.getElementById('bookingType');
+    if (bookingType && !bookingType.dataset.bound) {
+        bookingType.addEventListener('change', () => {
+            syncBookingTypeFormState();
+        });
+        bookingType.dataset.bound = 'true';
     }
 
     if (modal && !modal.dataset.bound) {
@@ -300,3 +449,5 @@ function attachBookingHandlers() {
 window.loadVesselBookings = loadVesselBookings;
 window.attachBookingHandlers = attachBookingHandlers;
 window.closeBookingModal = closeBookingModal;
+window.openBookingModal = openBookingModal;
+window.openImportBookingModal = openImportBookingModal;

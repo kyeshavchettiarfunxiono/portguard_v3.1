@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from models.cargo import CargoItem, CargoCondition
 from models.container import Container
+from models.unpacking import UnpackingSession
 
 
 class CargoService:
@@ -83,6 +84,12 @@ class CargoService:
         items = db.query(CargoItem).filter(
             CargoItem.container_id == container_uuid
         ).order_by(CargoItem.created_at).all()
+        unpacking_session = db.query(UnpackingSession).filter(
+            UnpackingSession.container_id == container_uuid
+        ).first()
+        manifest_documented_at = (
+            unpacking_session.manifest_documented_at if unpacking_session is not None else None
+        )
         
         manifest = []
         total_quantity = 0
@@ -104,6 +111,13 @@ class CargoService:
         return {
             "container_id": container_id,
             "container_no": container.container_no,
+            "manifest_vessel_name": container.manifest_vessel_name,
+            "manifest_voyage_number": container.manifest_voyage_number,
+            "depot_list_fcl_count": container.depot_list_fcl_count,
+            "depot_list_grp_count": container.depot_list_grp_count,
+            "manifest_document_reference": unpacking_session.manifest_document_reference if unpacking_session else None,
+            "manifest_notes": unpacking_session.manifest_notes if unpacking_session else None,
+            "manifest_documented_at": manifest_documented_at.isoformat() if manifest_documented_at is not None else None,
             "total_items": len(manifest),
             "total_quantity": total_quantity,
             "manifest": manifest
